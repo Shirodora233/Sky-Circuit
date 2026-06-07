@@ -11,7 +11,7 @@ namespace SkyCircuit.CameraRigging
         [SerializeField] private float lookAheadDistance = 22f;
         [SerializeField] private float verticalLookOffset = 2.2f;
         [Range(0f, 1f)]
-        [SerializeField] private float velocityDirectionWeight = 0.7f;
+        [SerializeField] private float velocityDirectionWeight = 0f;
         [SerializeField] private float minVelocityForDirection = 2f;
         [SerializeField] private float directionSharpness = 8f;
 
@@ -88,6 +88,10 @@ namespace SkyCircuit.CameraRigging
             }
 
             forward.Normalize();
+            if (velocityDirectionWeight <= 0f)
+            {
+                return forward;
+            }
 
             Vector3 velocity = targetBody != null ? targetBody.linearVelocity : Vector3.zero;
             if (velocity.sqrMagnitude < minVelocityForDirection * minVelocityForDirection)

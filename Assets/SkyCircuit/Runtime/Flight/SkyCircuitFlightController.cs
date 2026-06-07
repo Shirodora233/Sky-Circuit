@@ -6,7 +6,7 @@ namespace SkyCircuit.Flight
     public sealed class SkyCircuitFlightController : MonoBehaviour
     {
         [Header("Speed")]
-        [SerializeField] private float minSpeed = 8f;
+        [SerializeField] private float minSpeed = 0f;
         [SerializeField] private float cruiseSpeed = 24f;
         [SerializeField] private float maxSpeed = 42f;
         [SerializeField] private float boostSpeed = 58f;
@@ -46,7 +46,7 @@ namespace SkyCircuit.Flight
             var angles = transform.eulerAngles;
             yaw = angles.y;
             pitch = NormalizeAngle(angles.x);
-            currentSpeed = cruiseSpeed;
+            currentSpeed = Mathf.Clamp(cruiseSpeed, minSpeed, boostSpeed);
         }
 
         public void SetInput(FlightInputState state)
@@ -76,7 +76,7 @@ namespace SkyCircuit.Flight
             var angles = rotation.eulerAngles;
             yaw = angles.y;
             pitch = NormalizeAngle(angles.x);
-            currentSpeed = cruiseSpeed;
+            currentSpeed = Mathf.Clamp(cruiseSpeed, minSpeed, boostSpeed);
         }
 
         private void UpdateRotation(float dt, Vector2 lookDelta)
@@ -97,20 +97,19 @@ namespace SkyCircuit.Flight
 
         private void UpdateVelocity(float dt)
         {
-            float targetSpeed = cruiseSpeed;
-            float speedRate = acceleration;
-
             if (input.Throttle > 0.05f)
             {
-                targetSpeed = input.Boost ? boostSpeed : maxSpeed;
+                float targetSpeed = input.Boost ? boostSpeed : maxSpeed;
+                currentSpeed = Mathf.MoveTowards(currentSpeed, targetSpeed, acceleration * input.Throttle * dt);
             }
             else if (input.Throttle < -0.05f)
             {
-                targetSpeed = minSpeed;
-                speedRate = deceleration;
+                currentSpeed = Mathf.MoveTowards(currentSpeed, minSpeed, deceleration * -input.Throttle * dt);
             }
-
-            currentSpeed = Mathf.MoveTowards(currentSpeed, targetSpeed, speedRate * dt);
+            else
+            {
+                currentSpeed = Mathf.Clamp(currentSpeed, minSpeed, boostSpeed);
+            }
 
             Vector3 forwardVelocity = body.rotation * Vector3.forward * currentSpeed;
             Vector3 verticalVelocity = Vector3.up * (input.Vertical * verticalSpeed);

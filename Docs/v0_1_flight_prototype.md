@@ -34,6 +34,8 @@ This generates:
 - `Esc`: unlock cursor
 - Left click Game view: lock cursor again
 
+Releasing `W/S` holds the current speed. Holding `S` can brake all the way to `0`.
+
 ## Acceptance Checks
 
 - The player can fly a full loop around the four buoys.

@@ -1288,7 +1288,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e81fd0a46d8293c4cbbde7fa2f4f2619, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SkyCircuit.Flight.SkyCircuitFlightController
-  minSpeed: 8
+  minSpeed: 0
   cruiseSpeed: 24
   maxSpeed: 42
   boostSpeed: 58
@@ -1740,7 +1740,7 @@ MonoBehaviour:
   aimTarget: {fileID: 2001000012}
   lookAheadDistance: 22
   verticalLookOffset: 2.2
-  velocityDirectionWeight: 0.7
+  velocityDirectionWeight: 0
   minVelocityForDirection: 2
   directionSharpness: 8
 --- !u!1 &2001000011
