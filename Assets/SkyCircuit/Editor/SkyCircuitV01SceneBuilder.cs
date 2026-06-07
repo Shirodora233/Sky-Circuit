@@ -392,16 +392,15 @@ namespace SkyCircuit.EditorTools
             {
                 Component follow = cinemachineObject.AddComponent(followType);
                 SetNestedMember(follow, "TrackerSettings", "BindingMode", 2);
-                SetNestedMember(follow, "TrackerSettings", "PositionDamping", new Vector3(0.65f, 0.9f, 0.65f));
-                SetNestedMember(follow, "TrackerSettings", "RotationDamping", new Vector3(1.1f, 1.1f, 1.1f));
-                SetNestedMember(follow, "TrackerSettings", "QuaternionDamping", 1.1f);
+                SetNestedMember(follow, "TrackerSettings", "PositionDamping", new Vector3(0.35f, 0.55f, 0.35f));
+                SetNestedMember(follow, "TrackerSettings", "RotationDamping", new Vector3(0.6f, 0.6f, 0.6f));
+                SetNestedMember(follow, "TrackerSettings", "QuaternionDamping", 0.6f);
                 SetMember(follow, "FollowOffset", new Vector3(0f, 5.2f, -14f));
             }
 
             if (rotationComposerType != null)
             {
-                Component rotationComposer = cinemachineObject.AddComponent(rotationComposerType);
-                SetMember(rotationComposer, "Damping", new Vector2(1.45f, 1.25f));
+                cinemachineObject.AddComponent(rotationComposerType);
             }
 
             return true;

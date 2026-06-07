@@ -11,9 +11,9 @@ namespace SkyCircuit.CameraRigging
         [SerializeField] private float lookAheadDistance = 22f;
         [SerializeField] private float verticalLookOffset = 2.2f;
         [Range(0f, 1f)]
-        [SerializeField] private float velocityDirectionWeight = 0.55f;
+        [SerializeField] private float velocityDirectionWeight = 0.7f;
         [SerializeField] private float minVelocityForDirection = 2f;
-        [SerializeField] private float directionSharpness = 2.4f;
+        [SerializeField] private float directionSharpness = 8f;
 
         private Vector3 smoothedDirection;
 

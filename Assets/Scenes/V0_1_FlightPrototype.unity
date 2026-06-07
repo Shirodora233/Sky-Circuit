@@ -1740,9 +1740,9 @@ MonoBehaviour:
   aimTarget: {fileID: 2001000012}
   lookAheadDistance: 22
   verticalLookOffset: 2.2
-  velocityDirectionWeight: 0.55
+  velocityDirectionWeight: 0.7
   minVelocityForDirection: 2
-  directionSharpness: 2.4
+  directionSharpness: 8
 --- !u!1 &2001000011
 GameObject:
   m_ObjectHideFlags: 0
@@ -1816,7 +1816,7 @@ MonoBehaviour:
       Offset: {x: 0, y: 0}
   CenterOnActivate: 1
   TargetOffset: {x: 0, y: 0, z: 0}
-  Damping: {x: 1.45, y: 1.25}
+  Damping: {x: 0.5, y: 0.5}
   Lookahead:
     Enabled: 0
     Time: 0
@@ -1836,10 +1836,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineFollow
   TrackerSettings:
     BindingMode: 2
-    PositionDamping: {x: 0.65, y: 0.9, z: 0.65}
+    PositionDamping: {x: 0.35, y: 0.55, z: 0.35}
     AngularDampingMode: 0
-    RotationDamping: {x: 1.1, y: 1.1, z: 1.1}
-    QuaternionDamping: 1.1
+    RotationDamping: {x: 0.6, y: 0.6, z: 0.6}
+    QuaternionDamping: 0.6
   FollowOffset: {x: 0, y: 5.2, z: -14}
 --- !u!114 &1482920295
 MonoBehaviour:
