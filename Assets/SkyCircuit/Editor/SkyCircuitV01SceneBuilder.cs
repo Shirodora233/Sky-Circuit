@@ -54,7 +54,7 @@ namespace SkyCircuit.EditorTools
             Transform spawnPoint = CreateSpawnPoint(gameplayRoot.transform);
             GameObject player = CreatePlayer(gameplayRoot.transform, spawnPoint, playerMaterial, noseMaterial);
             SkyCircuitFlightController flightController = player.GetComponent<SkyCircuitFlightController>();
-            FlightCameraTargetRig cameraTargetRig = CreateCameraTargetRig(gameplayRoot.transform, player.transform);
+            FlightCameraTargetRig cameraTargetRig = CreateCameraTargetRig(gameplayRoot.transform, player.transform, flightController);
 
             Transform[] buoys = CreateBuoys(gameplayRoot.transform, buoyIdleMaterial, touchRangeMaterial);
             LineRenderer routeLine = CreateRouteLine(gameplayRoot.transform, routeLineMaterial, buoys);
@@ -252,7 +252,10 @@ namespace SkyCircuit.EditorTools
             return player;
         }
 
-        private static FlightCameraTargetRig CreateCameraTargetRig(Transform parent, Transform player)
+        private static FlightCameraTargetRig CreateCameraTargetRig(
+            Transform parent,
+            Transform player,
+            SkyCircuitFlightController flightController)
         {
             GameObject rigObject = new GameObject("Camera Target Rig");
             rigObject.transform.SetParent(parent);
@@ -261,7 +264,7 @@ namespace SkyCircuit.EditorTools
             aimObject.transform.SetParent(rigObject.transform);
 
             FlightCameraTargetRig rig = rigObject.AddComponent<FlightCameraTargetRig>();
-            rig.Configure(player, player.GetComponent<Rigidbody>(), aimObject.transform);
+            rig.Configure(player, flightController, player.GetComponent<Rigidbody>(), aimObject.transform);
             return rig;
         }
 
@@ -392,15 +395,16 @@ namespace SkyCircuit.EditorTools
             {
                 Component follow = cinemachineObject.AddComponent(followType);
                 SetNestedMember(follow, "TrackerSettings", "BindingMode", 2);
-                SetNestedMember(follow, "TrackerSettings", "PositionDamping", new Vector3(0.35f, 0.55f, 0.35f));
-                SetNestedMember(follow, "TrackerSettings", "RotationDamping", new Vector3(0.6f, 0.6f, 0.6f));
-                SetNestedMember(follow, "TrackerSettings", "QuaternionDamping", 0.6f);
+                SetNestedMember(follow, "TrackerSettings", "PositionDamping", Vector3.zero);
+                SetNestedMember(follow, "TrackerSettings", "RotationDamping", Vector3.zero);
+                SetNestedMember(follow, "TrackerSettings", "QuaternionDamping", 0f);
                 SetMember(follow, "FollowOffset", new Vector3(0f, 5.2f, -14f));
             }
 
             if (rotationComposerType != null)
             {
-                cinemachineObject.AddComponent(rotationComposerType);
+                Component rotationComposer = cinemachineObject.AddComponent(rotationComposerType);
+                SetMember(rotationComposer, "Damping", Vector2.zero);
             }
 
             return true;

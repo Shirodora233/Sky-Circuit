@@ -15,19 +15,19 @@ namespace SkyCircuit.Flight
         [SerializeField] private float velocitySharpness = 8f;
 
         [Header("Steering")]
-        [SerializeField] private float mouseYawSensitivity = 0.22f;
+        [SerializeField] private float mouseYawSensitivity = 0.18f;
         [SerializeField] private float mousePitchSensitivity = 0.18f;
         [SerializeField] private float keyboardYawRate = 115f;
         [SerializeField] private float maxPitch = 58f;
         [SerializeField] private float maxBank = 46f;
-        [SerializeField] private float rotationSharpness = 11f;
+        [SerializeField] private float rotationSharpness = 26f;
 
         [Header("Vertical")]
         [SerializeField] private float verticalSpeed = 17f;
 
         private Rigidbody body;
         private FlightInputState input;
-        private Vector2 queuedLookDelta;
+        private float latestLookBank;
         private float yaw;
         private float pitch;
         private float currentSpeed;
@@ -35,6 +35,7 @@ namespace SkyCircuit.Flight
         public float CurrentSpeed => currentSpeed;
         public float NormalizedSpeed => Mathf.InverseLerp(minSpeed, boostSpeed, currentSpeed);
         public bool IsBoosting => input.Boost && currentSpeed > maxSpeed + 1f;
+        public Quaternion ControlRotation => Quaternion.Euler(pitch, yaw, 0f);
 
         private void Awake()
         {
@@ -52,16 +53,13 @@ namespace SkyCircuit.Flight
         public void SetInput(FlightInputState state)
         {
             input = state;
-            queuedLookDelta += state.LookDelta;
+            UpdateControlRotation(Time.deltaTime, state.LookDelta);
         }
 
         private void FixedUpdate()
         {
             float dt = Time.fixedDeltaTime;
-            Vector2 lookDelta = queuedLookDelta;
-            queuedLookDelta = Vector2.zero;
-
-            UpdateRotation(dt, lookDelta);
+            UpdateRotation(dt);
             UpdateVelocity(dt);
         }
 
@@ -76,18 +74,23 @@ namespace SkyCircuit.Flight
             var angles = rotation.eulerAngles;
             yaw = angles.y;
             pitch = NormalizeAngle(angles.x);
+            latestLookBank = 0f;
             currentSpeed = Mathf.Clamp(cruiseSpeed, minSpeed, boostSpeed);
         }
 
-        private void UpdateRotation(float dt, Vector2 lookDelta)
+        private void UpdateControlRotation(float dt, Vector2 lookDelta)
         {
             yaw += lookDelta.x * mouseYawSensitivity;
             yaw += input.Turn * keyboardYawRate * dt;
             pitch -= lookDelta.y * mousePitchSensitivity;
             pitch = Mathf.Clamp(pitch, -maxPitch, maxPitch);
 
-            float lookBank = Mathf.Clamp(lookDelta.x * 0.025f, -1f, 1f);
-            float bankInput = Mathf.Clamp(input.Turn + lookBank, -1f, 1f);
+            latestLookBank = Mathf.Clamp(lookDelta.x * 0.025f, -1f, 1f);
+        }
+
+        private void UpdateRotation(float dt)
+        {
+            float bankInput = Mathf.Clamp(input.Turn + latestLookBank, -1f, 1f);
             float bank = -bankInput * maxBank;
 
             Quaternion targetRotation = Quaternion.Euler(pitch, yaw, bank);

@@ -1,3 +1,4 @@
+using SkyCircuit.Flight;
 using UnityEngine;
 
 namespace SkyCircuit.CameraRigging
@@ -6,6 +7,7 @@ namespace SkyCircuit.CameraRigging
     public sealed class FlightCameraTargetRig : MonoBehaviour
     {
         [SerializeField] private Transform followTarget;
+        [SerializeField] private SkyCircuitFlightController flightController;
         [SerializeField] private Rigidbody targetBody;
         [SerializeField] private Transform aimTarget;
         [SerializeField] private float lookAheadDistance = 22f;
@@ -19,9 +21,14 @@ namespace SkyCircuit.CameraRigging
 
         public Transform AimTarget => aimTarget;
 
-        public void Configure(Transform newFollowTarget, Rigidbody newTargetBody, Transform newAimTarget)
+        public void Configure(
+            Transform newFollowTarget,
+            SkyCircuitFlightController newFlightController,
+            Rigidbody newTargetBody,
+            Transform newAimTarget)
         {
             followTarget = newFollowTarget;
+            flightController = newFlightController;
             targetBody = newTargetBody;
             aimTarget = newAimTarget;
             SnapToTarget();
@@ -32,6 +39,11 @@ namespace SkyCircuit.CameraRigging
             if (followTarget != null && targetBody == null)
             {
                 targetBody = followTarget.GetComponent<Rigidbody>();
+            }
+
+            if (followTarget != null && flightController == null)
+            {
+                flightController = followTarget.GetComponent<SkyCircuitFlightController>();
             }
         }
 
@@ -52,13 +64,7 @@ namespace SkyCircuit.CameraRigging
                 targetBody = followTarget.GetComponent<Rigidbody>();
             }
 
-            Vector3 desiredDirection = GetDesiredDirection();
-            float blend = DampBlend(directionSharpness, Time.deltaTime);
-            smoothedDirection = smoothedDirection.sqrMagnitude < 0.0001f
-                ? desiredDirection
-                : Vector3.Slerp(smoothedDirection, desiredDirection, blend).normalized;
-
-            transform.SetPositionAndRotation(followTarget.position, Quaternion.LookRotation(smoothedDirection, Vector3.up));
+            transform.SetPositionAndRotation(followTarget.position, GetDesiredRotation());
             UpdateAimTarget();
         }
 
@@ -74,9 +80,29 @@ namespace SkyCircuit.CameraRigging
                 targetBody = followTarget.GetComponent<Rigidbody>();
             }
 
+            if (flightController == null)
+            {
+                flightController = followTarget.GetComponent<SkyCircuitFlightController>();
+            }
+
             smoothedDirection = GetDesiredDirection();
-            transform.SetPositionAndRotation(followTarget.position, Quaternion.LookRotation(smoothedDirection, Vector3.up));
+            transform.SetPositionAndRotation(followTarget.position, GetDesiredRotation());
             UpdateAimTarget();
+        }
+
+        private Quaternion GetDesiredRotation()
+        {
+            if (flightController != null)
+            {
+                return flightController.ControlRotation;
+            }
+
+            Vector3 desiredDirection = GetDesiredDirection();
+            float blend = DampBlend(directionSharpness, Time.deltaTime);
+            smoothedDirection = smoothedDirection.sqrMagnitude < 0.0001f
+                ? desiredDirection
+                : Vector3.Slerp(smoothedDirection, desiredDirection, blend).normalized;
+            return Quaternion.LookRotation(smoothedDirection, Vector3.up);
         }
 
         private Vector3 GetDesiredDirection()

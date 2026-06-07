@@ -1300,7 +1300,7 @@ MonoBehaviour:
   keyboardYawRate: 115
   maxPitch: 58
   maxBank: 46
-  rotationSharpness: 11
+  rotationSharpness: 26
   verticalSpeed: 17
 --- !u!114 &1176804341
 MonoBehaviour:
@@ -1736,6 +1736,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SkyCircuit.CameraRigging.FlightCameraTargetRig
   followTarget: {fileID: 1176804339}
+  flightController: {fileID: 1176804340}
   targetBody: {fileID: 1176804344}
   aimTarget: {fileID: 2001000012}
   lookAheadDistance: 22
@@ -1816,7 +1817,7 @@ MonoBehaviour:
       Offset: {x: 0, y: 0}
   CenterOnActivate: 1
   TargetOffset: {x: 0, y: 0, z: 0}
-  Damping: {x: 0.5, y: 0.5}
+  Damping: {x: 0, y: 0}
   Lookahead:
     Enabled: 0
     Time: 0
@@ -1836,10 +1837,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineFollow
   TrackerSettings:
     BindingMode: 2
-    PositionDamping: {x: 0.35, y: 0.55, z: 0.35}
+    PositionDamping: {x: 0, y: 0, z: 0}
     AngularDampingMode: 0
-    RotationDamping: {x: 0.6, y: 0.6, z: 0.6}
-    QuaternionDamping: 0.6
+    RotationDamping: {x: 0, y: 0, z: 0}
+    QuaternionDamping: 0
   FollowOffset: {x: 0, y: 5.2, z: -14}
 --- !u!114 &1482920295
 MonoBehaviour:
