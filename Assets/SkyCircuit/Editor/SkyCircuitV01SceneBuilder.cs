@@ -357,7 +357,7 @@ namespace SkyCircuit.EditorTools
             GameObject cameraObject = new GameObject("Main Camera");
             cameraObject.tag = "MainCamera";
             Camera camera = cameraObject.AddComponent<Camera>();
-            camera.fieldOfView = 67f;
+            camera.fieldOfView = 72f;
             camera.nearClipPlane = 0.1f;
             camera.farClipPlane = 600f;
             camera.clearFlags = CameraClearFlags.Skybox;
@@ -390,6 +390,7 @@ namespace SkyCircuit.EditorTools
             Component virtualCamera = cinemachineObject.AddComponent(cameraType);
             SetMember(virtualCamera, "Follow", followTarget);
             SetMember(virtualCamera, "LookAt", lookTarget != null ? lookTarget : followTarget);
+            SetNestedMember(virtualCamera, "Lens", "FieldOfView", 72f);
 
             if (followType != null)
             {
