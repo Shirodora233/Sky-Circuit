@@ -220,6 +220,7 @@ namespace SkyCircuit.EditorTools
             body.angularDamping = 0.5f;
 
             SkyCircuitFlightController controller = player.AddComponent<SkyCircuitFlightController>();
+            ConfigurePrototypeSpeed(controller);
             player.AddComponent<PlayerFlightInput>();
 
             FlightResetVolume reset = player.AddComponent<FlightResetVolume>();
@@ -250,6 +251,41 @@ namespace SkyCircuit.EditorTools
             feedback.Configure(controller, trail);
 
             return player;
+        }
+
+        private static void ConfigurePrototypeSpeed(SkyCircuitFlightController controller)
+        {
+            var serializedController = new SerializedObject(controller);
+            SerializedProperty speedModule = serializedController.FindProperty("speedModule");
+            if (speedModule == null)
+            {
+                return;
+            }
+
+            SetFloat(speedModule, "minSpeed", 0f);
+            SetFloat(speedModule, "cruiseSpeed", 24f);
+            SetFloat(speedModule, "maxSpeed", 42f);
+            SetFloat(speedModule, "boostSpeed", 58f);
+            SetFloat(speedModule, "acceleration", 22f);
+            SetFloat(speedModule, "deceleration", 30f);
+            SetFloat(speedModule, "velocitySharpness", 8f);
+            SetFloat(speedModule, "verticalAssistSpeed", 17f);
+            SetFloat(speedModule, "gravityEnergy", 9.8f);
+            SetFloat(speedModule, "climbEfficiency", 0.9f);
+            SetFloat(speedModule, "diveEfficiency", 0.8f);
+            SetFloat(speedModule, "turnLossReferenceRate", 140f);
+            SetFloat(speedModule, "turnSpeedLossRate", 0.09f);
+            SetFloat(speedModule, "turnLossMinSpeed", 4f);
+            serializedController.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void SetFloat(SerializedProperty parent, string propertyName, float value)
+        {
+            SerializedProperty property = parent.FindPropertyRelative(propertyName);
+            if (property != null)
+            {
+                property.floatValue = value;
+            }
         }
 
         private static FlightCameraTargetRig CreateCameraTargetRig(

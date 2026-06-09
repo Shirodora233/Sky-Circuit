@@ -35,6 +35,7 @@ This generates:
 - Left click Game view: lock cursor again
 
 Releasing `W/S` holds the current speed. Holding `S` can brake all the way to `0`.
+Climbing trades speed for altitude, diving converts altitude back into speed, and sustained sharp turns bleed a small amount of speed.
 
 ## Acceptance Checks
 

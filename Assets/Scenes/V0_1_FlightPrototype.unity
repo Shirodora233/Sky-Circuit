@@ -1288,20 +1288,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e81fd0a46d8293c4cbbde7fa2f4f2619, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SkyCircuit.Flight.SkyCircuitFlightController
-  minSpeed: 0
-  cruiseSpeed: 24
-  maxSpeed: 42
-  boostSpeed: 58
-  acceleration: 22
-  deceleration: 30
-  velocitySharpness: 8
+  speedModule:
+    minSpeed: 0
+    cruiseSpeed: 24
+    maxSpeed: 42
+    boostSpeed: 58
+    acceleration: 22
+    deceleration: 30
+    velocitySharpness: 8
+    verticalAssistSpeed: 17
+    gravityEnergy: 9.8
+    climbEfficiency: 0.9
+    diveEfficiency: 0.8
+    turnLossReferenceRate: 140
+    turnSpeedLossRate: 0.09
+    turnLossMinSpeed: 4
   mouseYawSensitivity: 0.22
   mousePitchSensitivity: 0.18
   keyboardYawRate: 115
   maxPitch: 58
   maxBank: 46
   rotationSharpness: 26
-  verticalSpeed: 17
 --- !u!114 &1176804341
 MonoBehaviour:
   m_ObjectHideFlags: 0
