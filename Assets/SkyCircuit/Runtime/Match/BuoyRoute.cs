@@ -13,6 +13,7 @@ namespace SkyCircuit.Match
         [SerializeField] private LineRenderer routeLine;
 
         public int BuoyCount => buoys == null ? 0 : buoys.Length;
+        public float TouchRadius => touchRadius;
 
         public void Configure(
             Transform[] routeBuoys,
