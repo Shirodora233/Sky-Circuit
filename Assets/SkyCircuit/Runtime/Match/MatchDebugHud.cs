@@ -1,3 +1,4 @@
+using SkyCircuit.Combat;
 using UnityEngine;
 
 namespace SkyCircuit.Match
@@ -5,6 +6,8 @@ namespace SkyCircuit.Match
     public sealed class MatchDebugHud : MonoBehaviour
     {
         [SerializeField] private MatchController match;
+        [SerializeField] private DogfightController dogfight;
+        [SerializeField] private string title = "Sky Circuit V0.2 Match Prototype";
 
         private GUIStyle labelStyle;
         private GUIStyle titleStyle;
@@ -12,6 +15,12 @@ namespace SkyCircuit.Match
         public void Configure(MatchController matchController)
         {
             match = matchController;
+        }
+
+        public void ConfigureDogfight(DogfightController dogfightController)
+        {
+            dogfight = dogfightController;
+            title = "Sky Circuit V0.3 Dogfight Prototype";
         }
 
         private void Awake()
@@ -36,8 +45,8 @@ namespace SkyCircuit.Match
                 Awake();
             }
 
-            GUILayout.BeginArea(new Rect(18f, 18f, 460f, 220f), GUI.skin.box);
-            GUILayout.Label("Sky Circuit V0.2 Match Prototype", titleStyle);
+            GUILayout.BeginArea(new Rect(18f, 18f, 500f, 280f), GUI.skin.box);
+            GUILayout.Label(title, titleStyle);
             GUILayout.Space(4f);
 
             if (match == null)
@@ -61,10 +70,18 @@ namespace SkyCircuit.Match
             Competitor opponent = match.Opponent;
             GUILayout.Space(6f);
             GUILayout.Label($"{NameOf(player)}: {ScoreOf(player)}    {NameOf(opponent)}: {ScoreOf(opponent)}", labelStyle);
+            GUILayout.Label($"Buoys: {BuoyScoreOf(player)} / {BuoyScoreOf(opponent)}    Back Hits: {BackHitScoreOf(player)} / {BackHitScoreOf(opponent)}", labelStyle);
 
             if (player != null)
             {
                 GUILayout.Label($"Target Buoy: {player.TargetIndex + 1}", labelStyle);
+            }
+
+            if (dogfight != null)
+            {
+                string dogfightState = dogfight.IsUnlocked ? "Unlocked" : "Locked";
+                GUILayout.Label($"Dogfight: {dogfightState}    Cooldown: {dogfight.CooldownRemaining:0.0}", labelStyle);
+                GUILayout.Label(dogfight.LastHitText, labelStyle);
             }
 
             if (match.Phase == MatchPhase.Finished)
@@ -86,6 +103,16 @@ namespace SkyCircuit.Match
         private static int ScoreOf(Competitor competitor)
         {
             return competitor != null ? competitor.Score : 0;
+        }
+
+        private static int BuoyScoreOf(Competitor competitor)
+        {
+            return competitor != null ? competitor.BuoyScoreCount : 0;
+        }
+
+        private static int BackHitScoreOf(Competitor competitor)
+        {
+            return competitor != null ? competitor.BackHitScoreCount : 0;
         }
 
         private static string FormatTime(float seconds)

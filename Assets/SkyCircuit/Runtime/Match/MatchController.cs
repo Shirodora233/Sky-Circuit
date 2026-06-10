@@ -30,6 +30,7 @@ namespace SkyCircuit.Match
         public Competitor Player => player;
         public Competitor Opponent => opponent;
         public string ResultText => resultText;
+        public bool DogfightUnlocked => (player != null && player.BuoyScoreCount > 0) || (opponent != null && opponent.BuoyScoreCount > 0);
 
         public void Configure(BuoyRoute matchRoute, Competitor playerCompetitor, Competitor opponentCompetitor)
         {

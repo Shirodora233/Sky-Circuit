@@ -12,11 +12,15 @@ namespace SkyCircuit.Match
         [SerializeField] private Transform spawnPoint;
 
         private int score;
+        private int buoyScoreCount;
+        private int backHitScoreCount;
         private int targetIndex;
 
         public string DisplayName => displayName;
         public bool IsPlayer => isPlayer;
         public int Score => score;
+        public int BuoyScoreCount => buoyScoreCount;
+        public int BackHitScoreCount => backHitScoreCount;
         public int TargetIndex => targetIndex;
         public Transform Body => body != null ? body : transform;
         public SkyCircuitFlightController Controller => controller;
@@ -50,6 +54,8 @@ namespace SkyCircuit.Match
         public void ResetForMatch()
         {
             score = 0;
+            buoyScoreCount = 0;
+            backHitScoreCount = 0;
             targetIndex = 0;
             ResetToSpawn();
         }
@@ -67,6 +73,18 @@ namespace SkyCircuit.Match
         public void AddScore(int amount)
         {
             score = Mathf.Max(0, score + amount);
+        }
+
+        public void AddBuoyScore(int amount)
+        {
+            buoyScoreCount = Mathf.Max(0, buoyScoreCount + amount);
+            AddScore(amount);
+        }
+
+        public void AddBackHitScore(int amount)
+        {
+            backHitScoreCount = Mathf.Max(0, backHitScoreCount + amount);
+            AddScore(amount);
         }
 
         public void AdvanceTarget(int buoyCount)

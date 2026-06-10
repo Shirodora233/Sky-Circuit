@@ -1,3 +1,4 @@
+using SkyCircuit.Combat;
 using SkyCircuit.Flight;
 using SkyCircuit.Match;
 using UnityEngine;
@@ -9,8 +10,10 @@ namespace SkyCircuit.AI
     {
         [SerializeField] private SkyCircuitFlightController controller;
         [SerializeField] private Competitor competitor;
+        [SerializeField] private Competitor dogfightOpponent;
         [SerializeField] private BuoyRoute route;
         [SerializeField] private MatchController match;
+        [SerializeField] private DogfightController dogfight;
         [SerializeField] private float turnGain = 2.4f;
         [SerializeField] private float verticalRange = 18f;
         [SerializeField] private float routeSpeed = 32f;
@@ -20,6 +23,9 @@ namespace SkyCircuit.AI
         [SerializeField] private float overshootRecoveryRadius = 28f;
         [SerializeField] private float speedTolerance = 2f;
         [SerializeField] private float brakeInput = -0.85f;
+        [SerializeField] private float dogfightEngageDistance = 45f;
+        [SerializeField] private float dogfightBehindOffset = 3f;
+        [SerializeField] private float dogfightVerticalOffset = 0.5f;
         [SerializeField] private bool boostOnStraight = false;
 
         private float lastTurnDirection = 1f;
@@ -34,6 +40,12 @@ namespace SkyCircuit.AI
             competitor = aiCompetitor;
             route = buoyRoute;
             match = matchController;
+        }
+
+        public void ConfigureDogfight(Competitor opponent, DogfightController dogfightController)
+        {
+            dogfightOpponent = opponent;
+            dogfight = dogfightController;
         }
 
         private void Awake()
@@ -58,23 +70,34 @@ namespace SkyCircuit.AI
 
             if (match == null || match.Phase != MatchPhase.Running)
             {
-                controller.SetInput(new FlightInputState(0f, 0f, 0f, Vector2.zero, false));
+                controller.SetInput(FlightInputState.Neutral);
                 return;
             }
 
-            Transform target = route != null ? route.GetTarget(competitor) : null;
             Transform body = competitor != null ? competitor.Body : transform;
-            if (target == null || body == null)
+            if (body == null)
             {
-                controller.SetInput(new FlightInputState(0f, 0f, 0f, Vector2.zero, false));
+                controller.SetInput(FlightInputState.Neutral);
                 return;
             }
 
-            Vector3 toTarget = target.position - body.position;
+            if (!TryGetDogfightTarget(body, out Vector3 targetPosition))
+            {
+                Transform routeTarget = route != null ? route.GetTarget(competitor) : null;
+                if (routeTarget == null)
+                {
+                    controller.SetInput(FlightInputState.Neutral);
+                    return;
+                }
+
+                targetPosition = routeTarget.position;
+            }
+
+            Vector3 toTarget = targetPosition - body.position;
             float distance = toTarget.magnitude;
             if (distance <= Mathf.Epsilon)
             {
-                controller.SetInput(new FlightInputState(0f, 0f, 0f, Vector2.zero, false));
+                controller.SetInput(FlightInputState.Neutral);
                 return;
             }
 
@@ -85,6 +108,25 @@ namespace SkyCircuit.AI
             float vertical = Mathf.Clamp(toTarget.y / verticalRange, -1f, 1f);
             bool boost = boostOnStraight && throttle > 0f && Mathf.Abs(turn) < 0.2f && Mathf.Abs(vertical) < 0.2f;
             controller.SetInput(new FlightInputState(throttle, turn, vertical, Vector2.zero, boost));
+        }
+
+        private bool TryGetDogfightTarget(Transform body, out Vector3 targetPosition)
+        {
+            targetPosition = Vector3.zero;
+            Transform opponentBody = dogfightOpponent != null ? dogfightOpponent.Body : null;
+            if (dogfight == null || !dogfight.IsUnlocked || opponentBody == null)
+            {
+                return false;
+            }
+
+            float distanceToOpponent = Vector3.Distance(body.position, opponentBody.position);
+            if (distanceToOpponent > dogfightEngageDistance)
+            {
+                return false;
+            }
+
+            targetPosition = opponentBody.position - opponentBody.forward * dogfightBehindOffset + Vector3.up * dogfightVerticalOffset;
+            return true;
         }
 
         private float CalculateTurn(Vector3 localTarget)

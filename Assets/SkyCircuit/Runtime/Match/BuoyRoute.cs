@@ -60,7 +60,7 @@ namespace SkyCircuit.Match
                 return false;
             }
 
-            competitor.AddScore(scorePerBuoy);
+            competitor.AddBuoyScore(scorePerBuoy);
             competitor.AdvanceTarget(BuoyCount);
             if (competitor.IsPlayer)
             {

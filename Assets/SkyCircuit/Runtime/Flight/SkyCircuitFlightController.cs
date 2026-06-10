@@ -15,8 +15,12 @@ namespace SkyCircuit.Flight
         [SerializeField] private float maxBank = 46f;
         [SerializeField] private float rotationSharpness = 26f;
 
+        [Header("External Forces")]
+        [SerializeField] private float externalImpulseDecay = 6f;
+
         private Rigidbody body;
         private FlightInputState input;
+        private Vector3 externalVelocity;
         private float latestLookBank;
         private float yaw;
         private float pitch;
@@ -46,6 +50,11 @@ namespace SkyCircuit.Flight
             UpdateControlRotation(Time.deltaTime, state.LookDelta);
         }
 
+        public void ApplyExternalImpulse(Vector3 velocityChange)
+        {
+            externalVelocity += velocityChange;
+        }
+
         private void FixedUpdate()
         {
             float dt = Time.fixedDeltaTime;
@@ -60,6 +69,7 @@ namespace SkyCircuit.Flight
             body.rotation = rotation;
             body.linearVelocity = Vector3.zero;
             body.angularVelocity = Vector3.zero;
+            externalVelocity = Vector3.zero;
 
             var angles = rotation.eulerAngles;
             yaw = angles.y;
@@ -97,7 +107,8 @@ namespace SkyCircuit.Flight
             FlightSpeedOutput output = speedModule.Step(speedInput, speedContext);
 
             float blend = DampBlend(speedModule.VelocitySharpness, dt);
-            body.linearVelocity = Vector3.Lerp(body.linearVelocity, output.TargetVelocity, blend);
+            body.linearVelocity = Vector3.Lerp(body.linearVelocity, output.TargetVelocity + externalVelocity, blend);
+            externalVelocity = Vector3.Lerp(externalVelocity, Vector3.zero, DampBlend(externalImpulseDecay, dt));
         }
 
         private void EnsureSpeedModule()
