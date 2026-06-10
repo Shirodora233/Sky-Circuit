@@ -11,6 +11,7 @@ namespace SkyCircuit.Flight
         [SerializeField] private float gamepadLookScale = 16f;
 
         private SkyCircuitFlightController controller;
+        private bool inputEnabled = true;
 
         private void Awake()
         {
@@ -28,7 +29,16 @@ namespace SkyCircuit.Flight
         private void Update()
         {
             HandleCursorLock();
-            controller.SetInput(ReadInput());
+            controller.SetInput(inputEnabled ? ReadInput() : FlightInputState.Neutral);
+        }
+
+        public void SetInputEnabled(bool enabled)
+        {
+            inputEnabled = enabled;
+            if (!inputEnabled && controller != null)
+            {
+                controller.SetInput(FlightInputState.Neutral);
+            }
         }
 
         private FlightInputState ReadInput()

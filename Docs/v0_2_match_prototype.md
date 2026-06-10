@@ -25,6 +25,8 @@ This generates:
 ## Rules
 
 - Only the current target buoy scores.
+- Player input and competitor flight are locked during countdown, then reset and released when the match starts.
+- Competitor flight is locked again when the match finishes, so ships do not drift out of bounds after results.
 - Touching the current target buoy gives `+1`.
 - Player and AI track their target index independently.
 - Only the player's target buoy is highlighted for now.

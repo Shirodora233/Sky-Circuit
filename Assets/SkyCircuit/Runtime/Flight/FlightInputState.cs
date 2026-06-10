@@ -10,6 +10,8 @@ namespace SkyCircuit.Flight
         public readonly Vector2 LookDelta;
         public readonly bool Boost;
 
+        public static readonly FlightInputState Neutral = new FlightInputState(0f, 0f, 0f, Vector2.zero, false);
+
         public FlightInputState(float throttle, float turn, float vertical, Vector2 lookDelta, bool boost)
         {
             Throttle = Mathf.Clamp(throttle, -1f, 1f);

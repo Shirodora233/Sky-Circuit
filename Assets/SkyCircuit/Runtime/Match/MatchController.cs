@@ -1,3 +1,4 @@
+using SkyCircuit.Flight;
 using UnityEngine;
 
 namespace SkyCircuit.Match
@@ -61,6 +62,9 @@ namespace SkyCircuit.Match
             countdownRemaining = countdownDuration;
             remainingTime = matchDuration;
             resultText = "Starting";
+            PrepareCompetitorForCountdown(player);
+            PrepareCompetitorForCountdown(opponent);
+            SetPlayerInputEnabled(false);
             route?.RefreshPlayerTargetVisual(player);
         }
 
@@ -79,6 +83,9 @@ namespace SkyCircuit.Match
         {
             player?.ResetForMatch();
             opponent?.ResetForMatch();
+            SetCompetitorFlightActive(player, true);
+            SetCompetitorFlightActive(opponent, true);
+            SetPlayerInputEnabled(true);
             route?.RefreshPlayerTargetVisual(player);
 
             countdownRemaining = 0f;
@@ -103,6 +110,9 @@ namespace SkyCircuit.Match
         {
             remainingTime = 0f;
             phase = MatchPhase.Finished;
+            SetPlayerInputEnabled(false);
+            SetCompetitorFlightActive(player, false);
+            SetCompetitorFlightActive(opponent, false);
 
             int playerScore = player != null ? player.Score : 0;
             int opponentScore = opponent != null ? opponent.Score : 0;
@@ -118,6 +128,46 @@ namespace SkyCircuit.Match
             {
                 resultText = "Draw";
             }
+        }
+
+        private static void PrepareCompetitorForCountdown(Competitor competitor)
+        {
+            competitor?.ResetToSpawn();
+            SetCompetitorFlightActive(competitor, false);
+        }
+
+        private static void SetCompetitorFlightActive(Competitor competitor, bool active)
+        {
+            SkyCircuitFlightController controller = competitor != null ? competitor.Controller : null;
+            if (controller == null)
+            {
+                return;
+            }
+
+            controller.SetInput(FlightInputState.Neutral);
+            controller.enabled = active;
+
+            if (active)
+            {
+                return;
+            }
+
+            var body = controller.GetComponent<Rigidbody>();
+            if (body == null)
+            {
+                return;
+            }
+
+            body.linearVelocity = Vector3.zero;
+            body.angularVelocity = Vector3.zero;
+        }
+
+        private void SetPlayerInputEnabled(bool enabled)
+        {
+            PlayerFlightInput input = player != null && player.Controller != null
+                ? player.Controller.GetComponent<PlayerFlightInput>()
+                : null;
+            input?.SetInputEnabled(enabled);
         }
     }
 }
