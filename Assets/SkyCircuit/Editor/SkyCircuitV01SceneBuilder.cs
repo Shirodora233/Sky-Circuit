@@ -264,17 +264,19 @@ namespace SkyCircuit.EditorTools
 
             SetFloat(speedModule, "minSpeed", 0f);
             SetFloat(speedModule, "cruiseSpeed", 24f);
-            SetFloat(speedModule, "maxSpeed", 42f);
-            SetFloat(speedModule, "boostSpeed", 58f);
+            SetFloat(speedModule, "poweredMaxSpeed", 42f);
+            SetFloat(speedModule, "absoluteMaxSpeed", 58f);
             SetFloat(speedModule, "acceleration", 22f);
             SetFloat(speedModule, "deceleration", 30f);
+            SetFloat(speedModule, "highSpeedAccelerationScale", 0.18f);
+            SetFloat(speedModule, "overspeedReturnRate", 10f);
             SetFloat(speedModule, "velocitySharpness", 8f);
             SetFloat(speedModule, "verticalAssistSpeed", 17f);
             SetFloat(speedModule, "gravityEnergy", 9.8f);
             SetFloat(speedModule, "climbEfficiency", 0.9f);
             SetFloat(speedModule, "diveEfficiency", 0.8f);
             SetFloat(speedModule, "turnLossReferenceRate", 140f);
-            SetFloat(speedModule, "turnSpeedLossRate", 0.09f);
+            SetFloat(speedModule, "turnSpeedLossRate", 0.18f);
             SetFloat(speedModule, "turnLossMinSpeed", 4f);
             serializedController.ApplyModifiedPropertiesWithoutUndo();
         }

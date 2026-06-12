@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace SkyCircuit.Flight
 {
@@ -9,10 +10,14 @@ namespace SkyCircuit.Flight
         [Header("Speed")]
         [SerializeField] private float minSpeed = 0f;
         [SerializeField] private float cruiseSpeed = 24f;
-        [SerializeField] private float maxSpeed = 42f;
-        [SerializeField] private float boostSpeed = 58f;
+        [FormerlySerializedAs("maxSpeed")]
+        [SerializeField] private float poweredMaxSpeed = 42f;
+        [FormerlySerializedAs("boostSpeed")]
+        [SerializeField] private float absoluteMaxSpeed = 58f;
         [SerializeField] private float acceleration = 22f;
         [SerializeField] private float deceleration = 30f;
+        [SerializeField] private float highSpeedAccelerationScale = 0.18f;
+        [SerializeField] private float overspeedReturnRate = 10f;
         [SerializeField] private float velocitySharpness = 8f;
 
         [Header("Vertical Energy")]
@@ -23,20 +28,20 @@ namespace SkyCircuit.Flight
 
         [Header("Turn Drag")]
         [SerializeField] private float turnLossReferenceRate = 140f;
-        [SerializeField] private float turnSpeedLossRate = 0.09f;
+        [SerializeField] private float turnSpeedLossRate = 0.18f;
         [SerializeField] private float turnLossMinSpeed = 4f;
 
         private float currentSpeed;
         private Quaternion previousBodyRotation;
 
         public float CurrentSpeed => currentSpeed;
-        public float NormalizedSpeed => Mathf.InverseLerp(minSpeed, boostSpeed, currentSpeed);
+        public float NormalizedSpeed => Mathf.InverseLerp(minSpeed, absoluteMaxSpeed, currentSpeed);
         public float VelocitySharpness => velocitySharpness;
         public bool IsBoosting { get; private set; }
 
         public void Reset(Quaternion bodyRotation)
         {
-            currentSpeed = Mathf.Clamp(cruiseSpeed, minSpeed, boostSpeed);
+            currentSpeed = Mathf.Clamp(cruiseSpeed, minSpeed, absoluteMaxSpeed);
             previousBodyRotation = bodyRotation;
             IsBoosting = false;
         }
@@ -46,6 +51,7 @@ namespace SkyCircuit.Flight
             ApplyThrottle(input, context.DeltaTime);
             ApplyGravityEnergy(input, context);
             ApplyTurnLoss(context);
+            ApplyOverspeedReturn(input, context);
             return BuildOutput(input, context);
         }
 
@@ -58,8 +64,12 @@ namespace SkyCircuit.Flight
 
             if (input.Throttle > 0.05f)
             {
-                float targetSpeed = input.Boost ? boostSpeed : maxSpeed;
-                currentSpeed = Mathf.MoveTowards(currentSpeed, targetSpeed, acceleration * input.Throttle * dt);
+                float targetSpeed = input.Boost ? absoluteMaxSpeed : poweredMaxSpeed;
+                if (currentSpeed < targetSpeed)
+                {
+                    float accelScale = CalculateAccelerationScale(targetSpeed);
+                    currentSpeed = Mathf.MoveTowards(currentSpeed, targetSpeed, acceleration * accelScale * input.Throttle * dt);
+                }
             }
             else if (input.Throttle < -0.05f)
             {
@@ -67,7 +77,7 @@ namespace SkyCircuit.Flight
             }
             else
             {
-                currentSpeed = Mathf.Clamp(currentSpeed, minSpeed, boostSpeed);
+                currentSpeed = Mathf.Clamp(currentSpeed, minSpeed, absoluteMaxSpeed);
             }
         }
 
@@ -97,7 +107,7 @@ namespace SkyCircuit.Flight
                 speedSquared += 2f * gravityEnergy * -climbDelta * diveEfficiency;
             }
 
-            currentSpeed = Mathf.Clamp(Mathf.Sqrt(Mathf.Max(0f, speedSquared)), minSpeed, boostSpeed);
+            currentSpeed = Mathf.Clamp(Mathf.Sqrt(Mathf.Max(0f, speedSquared)), minSpeed, absoluteMaxSpeed);
         }
 
         private void ApplyTurnLoss(FlightSpeedContext context)
@@ -122,15 +132,49 @@ namespace SkyCircuit.Flight
             previousBodyRotation = context.BodyRotation;
         }
 
+        private void ApplyOverspeedReturn(FlightSpeedInput input, FlightSpeedContext context)
+        {
+            float dt = context.DeltaTime;
+            if (dt <= 0f || overspeedReturnRate <= 0f || currentSpeed <= poweredMaxSpeed)
+            {
+                return;
+            }
+
+            if (input.Boost)
+            {
+                return;
+            }
+
+            if (EstimateVerticalVelocity(input, context) < -0.25f)
+            {
+                return;
+            }
+
+            currentSpeed = Mathf.MoveTowards(currentSpeed, poweredMaxSpeed, overspeedReturnRate * dt);
+        }
+
         private FlightSpeedOutput BuildOutput(FlightSpeedInput input, FlightSpeedContext context)
         {
-            currentSpeed = Mathf.Clamp(currentSpeed, minSpeed, boostSpeed);
-            IsBoosting = input.Boost && currentSpeed > maxSpeed + 1f;
+            currentSpeed = Mathf.Clamp(currentSpeed, minSpeed, absoluteMaxSpeed);
+            IsBoosting = currentSpeed > poweredMaxSpeed + 1f;
 
             Vector3 forwardVelocity = context.BodyRotation * Vector3.forward * currentSpeed;
             Vector3 verticalAssist = Vector3.up * (input.Vertical * verticalAssistSpeed);
             Vector3 targetVelocity = forwardVelocity + verticalAssist;
             return new FlightSpeedOutput(currentSpeed, targetVelocity, IsBoosting);
+        }
+
+        private float CalculateAccelerationScale(float targetSpeed)
+        {
+            float speed01 = Mathf.InverseLerp(cruiseSpeed, targetSpeed, currentSpeed);
+            float eased = speed01 * speed01;
+            return Mathf.Lerp(1f, Mathf.Clamp01(highSpeedAccelerationScale), eased);
+        }
+
+        private float EstimateVerticalVelocity(FlightSpeedInput input, FlightSpeedContext context)
+        {
+            Vector3 forward = context.BodyRotation * Vector3.forward;
+            return forward.y * currentSpeed + input.Vertical * verticalAssistSpeed;
         }
     }
 

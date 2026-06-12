@@ -259,17 +259,19 @@ MonoBehaviour:
   speedModule:
     minSpeed: 0
     cruiseSpeed: 24
-    maxSpeed: 42
-    boostSpeed: 58
+    poweredMaxSpeed: 42
+    absoluteMaxSpeed: 58
     acceleration: 22
     deceleration: 30
+    highSpeedAccelerationScale: 0.18
+    overspeedReturnRate: 10
     velocitySharpness: 8
     verticalAssistSpeed: 17
     gravityEnergy: 9.8
     climbEfficiency: 0.9
     diveEfficiency: 0.8
     turnLossReferenceRate: 140
-    turnSpeedLossRate: 0.09
+    turnSpeedLossRate: 0.18
     turnLossMinSpeed: 4
   mouseYawSensitivity: 0.22
   mousePitchSensitivity: 0.18
@@ -2851,17 +2853,19 @@ MonoBehaviour:
   speedModule:
     minSpeed: 0
     cruiseSpeed: 24
-    maxSpeed: 42
-    boostSpeed: 58
+    poweredMaxSpeed: 42
+    absoluteMaxSpeed: 58
     acceleration: 22
     deceleration: 30
+    highSpeedAccelerationScale: 0.18
+    overspeedReturnRate: 10
     velocitySharpness: 8
     verticalAssistSpeed: 17
     gravityEnergy: 9.8
     climbEfficiency: 0.9
     diveEfficiency: 0.8
     turnLossReferenceRate: 140
-    turnSpeedLossRate: 0.09
+    turnSpeedLossRate: 0.18
     turnLossMinSpeed: 4
   mouseYawSensitivity: 0.22
   mousePitchSensitivity: 0.18

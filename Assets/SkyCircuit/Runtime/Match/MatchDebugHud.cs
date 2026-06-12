@@ -45,7 +45,7 @@ namespace SkyCircuit.Match
                 Awake();
             }
 
-            GUILayout.BeginArea(new Rect(18f, 18f, 500f, 280f), GUI.skin.box);
+            GUILayout.BeginArea(new Rect(18f, 18f, 520f, 305f), GUI.skin.box);
             GUILayout.Label(title, titleStyle);
             GUILayout.Space(4f);
 
@@ -71,6 +71,7 @@ namespace SkyCircuit.Match
             GUILayout.Space(6f);
             GUILayout.Label($"{NameOf(player)}: {ScoreOf(player)}    {NameOf(opponent)}: {ScoreOf(opponent)}", labelStyle);
             GUILayout.Label($"Buoys: {BuoyScoreOf(player)} / {BuoyScoreOf(opponent)}    Back Hits: {BackHitScoreOf(player)} / {BackHitScoreOf(opponent)}", labelStyle);
+            GUILayout.Label($"Speed: {SpeedText(player)}    AI: {SpeedText(opponent)}", labelStyle);
 
             if (player != null)
             {
@@ -113,6 +114,24 @@ namespace SkyCircuit.Match
         private static int BackHitScoreOf(Competitor competitor)
         {
             return competitor != null ? competitor.BackHitScoreCount : 0;
+        }
+
+        private static string SpeedText(Competitor competitor)
+        {
+            if (competitor == null || competitor.Controller == null)
+            {
+                return "--";
+            }
+
+            float flightSpeed = competitor.Controller.CurrentSpeed;
+            float bodySpeed = BodySpeedOf(competitor);
+            return $"{flightSpeed:0.0} (Vel {bodySpeed:0.0})";
+        }
+
+        private static float BodySpeedOf(Competitor competitor)
+        {
+            Rigidbody body = competitor.Body != null ? competitor.Body.GetComponent<Rigidbody>() : null;
+            return body != null ? body.linearVelocity.magnitude : 0f;
         }
 
         private static string FormatTime(float seconds)

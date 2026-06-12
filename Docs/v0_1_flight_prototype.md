@@ -35,7 +35,8 @@ This generates:
 - Left click Game view: lock cursor again
 
 Releasing `W/S` holds the current speed. Holding `S` can brake all the way to `0`.
-Climbing trades speed for altitude, diving converts altitude back into speed, and sustained sharp turns bleed a small amount of speed.
+Holding `W` can maintain the powered speed cap, while dives or boost can briefly exceed it up to the absolute speed cap.
+Climbing trades speed for altitude, diving converts altitude back into speed, overspeed bleeds back down after descent ends, and sustained sharp turns bleed speed.
 
 ## Acceptance Checks
 
