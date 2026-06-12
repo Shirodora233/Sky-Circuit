@@ -277,7 +277,7 @@ MonoBehaviour:
   maxPitch: 58
   maxBank: 46
   rotationSharpness: 26
-  externalImpulseDecay: 6
+  externalImpulseDecay: 4
 --- !u!54 &16929757
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -601,8 +601,8 @@ MonoBehaviour:
   attackerFacingDotThreshold: 0.35
   backHitScore: 2
   hitCooldown: 1.2
-  repulsionVelocityChange: 16
-  repulsionUpBias: 2
+  repulsionVelocityChange: 34
+  repulsionUpBias: 0.45
 --- !u!4 &233450448
 Transform:
   m_ObjectHideFlags: 0
@@ -2869,7 +2869,7 @@ MonoBehaviour:
   maxPitch: 58
   maxBank: 46
   rotationSharpness: 26
-  externalImpulseDecay: 6
+  externalImpulseDecay: 4
 --- !u!114 &1799615779
 MonoBehaviour:
   m_ObjectHideFlags: 0

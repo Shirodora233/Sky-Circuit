@@ -16,7 +16,7 @@ namespace SkyCircuit.Flight
         [SerializeField] private float rotationSharpness = 26f;
 
         [Header("External Forces")]
-        [SerializeField] private float externalImpulseDecay = 6f;
+        [SerializeField] private float externalImpulseDecay = 4f;
 
         private Rigidbody body;
         private FlightInputState input;
@@ -52,7 +52,9 @@ namespace SkyCircuit.Flight
 
         public void ApplyExternalImpulse(Vector3 velocityChange)
         {
+            EnsureBody();
             externalVelocity += velocityChange;
+            body.linearVelocity += velocityChange;
         }
 
         private void FixedUpdate()
@@ -114,6 +116,14 @@ namespace SkyCircuit.Flight
         private void EnsureSpeedModule()
         {
             speedModule ??= new FlightSpeedModule();
+        }
+
+        private void EnsureBody()
+        {
+            if (body == null)
+            {
+                body = GetComponent<Rigidbody>();
+            }
         }
 
         private static float DampBlend(float sharpness, float dt)

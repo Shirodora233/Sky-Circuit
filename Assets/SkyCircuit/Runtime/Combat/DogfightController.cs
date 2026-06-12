@@ -20,8 +20,8 @@ namespace SkyCircuit.Combat
         [SerializeField] private float hitCooldown = 1.2f;
 
         [Header("Repulsion")]
-        [SerializeField] private float repulsionVelocityChange = 16f;
-        [SerializeField] private float repulsionUpBias = 2f;
+        [SerializeField] private float repulsionVelocityChange = 50f;
+        [SerializeField] private float repulsionUpBias = 0.45f;
 
         private float cooldownRemaining;
         private string lastHitText = "No back hit yet";
