@@ -1,4 +1,5 @@
 using SkyCircuit.Flight;
+using SkyCircuit.Profiles;
 using UnityEngine;
 
 namespace SkyCircuit.Match
@@ -7,6 +8,7 @@ namespace SkyCircuit.Match
     {
         [SerializeField] private string displayName = "Competitor";
         [SerializeField] private bool isPlayer;
+        [SerializeField] private CompetitorProfile profile;
         [SerializeField] private Transform body;
         [SerializeField] private SkyCircuitFlightController controller;
         [SerializeField] private Transform spawnPoint;
@@ -22,6 +24,8 @@ namespace SkyCircuit.Match
         public int BuoyScoreCount => buoyScoreCount;
         public int BackHitScoreCount => backHitScoreCount;
         public int TargetIndex => targetIndex;
+        public CompetitorProfile Profile => profile;
+        public string ProfileName => profile != null ? profile.DisplayName : "Prototype";
         public Transform Body => body != null ? body : transform;
         public SkyCircuitFlightController Controller => controller;
 
@@ -29,13 +33,15 @@ namespace SkyCircuit.Match
             string competitorName,
             bool playerControlled,
             SkyCircuitFlightController flightController,
-            Transform spawn)
+            Transform spawn,
+            CompetitorProfile initialProfile = null)
         {
             displayName = competitorName;
             isPlayer = playerControlled;
             controller = flightController;
             body = flightController != null ? flightController.transform : transform;
             spawnPoint = spawn;
+            SetProfile(initialProfile, true);
         }
 
         private void Awake()
@@ -49,6 +55,8 @@ namespace SkyCircuit.Match
             {
                 controller = GetComponent<SkyCircuitFlightController>();
             }
+
+            SetProfile(profile, true);
         }
 
         public void ResetForMatch()
@@ -85,6 +93,17 @@ namespace SkyCircuit.Match
         {
             backHitScoreCount = Mathf.Max(0, backHitScoreCount + amount);
             AddScore(amount);
+        }
+
+        public void SetProfile(CompetitorProfile newProfile, bool resetSpeed)
+        {
+            if (newProfile == null)
+            {
+                return;
+            }
+
+            profile = newProfile;
+            controller?.ApplyProfile(profile, resetSpeed);
         }
 
         public void AdvanceTarget(int buoyCount)

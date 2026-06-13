@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 12435073fec645628723213816e0536e, type: 3}
+  m_Name: SC_AllRounder
+  m_EditorClassIdentifier: 
+  displayName: All-Rounder
+  archetype: 2
+  speed:
+    minSpeed: 0
+    cruiseSpeed: 24
+    poweredMaxSpeed: 42
+    absoluteMaxSpeed: 58
+    acceleration: 22
+    deceleration: 30
+    highSpeedAccelerationScale: 0.18
+    overspeedReturnRate: 10
+    velocitySharpness: 8
+    verticalAssistSpeed: 17
+    gravityEnergy: 9.8
+    climbEfficiency: 0.9
+    diveEfficiency: 0.8
+    turnLossReferenceRate: 140
+    turnSpeedLossRate: 0.18
+    turnLossMinSpeed: 4
+  steering:
+    mouseYawSensitivity: 0.22
+    mousePitchSensitivity: 0.18
+    keyboardYawRate: 115
+    maxPitch: 58
+    maxBank: 46
+    rotationSharpness: 26
+    externalImpulseDecay: 4
+  aiPilot:
+    turnGain: 2.4
+    verticalRange: 18
+    routeSpeed: 32
+    closeTargetSpeed: 12
+    overshootSpeed: 6
+    approachSlowRadius: 42
+    overshootRecoveryRadius: 28
+    speedTolerance: 2
+    brakeInput: -0.85
+    dogfightEngageDistance: 45
+    dogfightBehindOffset: 3
+    dogfightVerticalOffset: 0.5
+    boostOnStraight: 0

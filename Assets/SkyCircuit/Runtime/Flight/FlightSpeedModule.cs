@@ -1,4 +1,5 @@
 using System;
+using SkyCircuit.Profiles;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -38,6 +39,31 @@ namespace SkyCircuit.Flight
         public float NormalizedSpeed => Mathf.InverseLerp(minSpeed, absoluteMaxSpeed, currentSpeed);
         public float VelocitySharpness => velocitySharpness;
         public bool IsBoosting { get; private set; }
+
+        public void ApplySettings(FlightSpeedSettings settings, bool preserveCurrentSpeed)
+        {
+            settings = settings.Validated();
+            minSpeed = settings.minSpeed;
+            cruiseSpeed = settings.cruiseSpeed;
+            poweredMaxSpeed = settings.poweredMaxSpeed;
+            absoluteMaxSpeed = settings.absoluteMaxSpeed;
+            acceleration = settings.acceleration;
+            deceleration = settings.deceleration;
+            highSpeedAccelerationScale = settings.highSpeedAccelerationScale;
+            overspeedReturnRate = settings.overspeedReturnRate;
+            velocitySharpness = settings.velocitySharpness;
+            verticalAssistSpeed = settings.verticalAssistSpeed;
+            gravityEnergy = settings.gravityEnergy;
+            climbEfficiency = settings.climbEfficiency;
+            diveEfficiency = settings.diveEfficiency;
+            turnLossReferenceRate = settings.turnLossReferenceRate;
+            turnSpeedLossRate = settings.turnSpeedLossRate;
+            turnLossMinSpeed = settings.turnLossMinSpeed;
+
+            currentSpeed = preserveCurrentSpeed
+                ? Mathf.Clamp(currentSpeed, minSpeed, absoluteMaxSpeed)
+                : Mathf.Clamp(cruiseSpeed, minSpeed, absoluteMaxSpeed);
+        }
 
         public void Reset(Quaternion bodyRotation)
         {

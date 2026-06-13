@@ -6,7 +6,7 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/V0_3_DogfightPrototype.unity
-    guid: 4d15e165b6ac72342b9e50e98c44c1b6
+    path: Assets/Scenes/V0_4_ProfilePrototype.unity
+    guid: 9812d91e1efc45f8b2a4319fcbf29abd
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

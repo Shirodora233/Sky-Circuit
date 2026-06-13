@@ -1,6 +1,7 @@
 using SkyCircuit.Combat;
 using SkyCircuit.Flight;
 using SkyCircuit.Match;
+using SkyCircuit.Profiles;
 using UnityEngine;
 
 namespace SkyCircuit.AI
@@ -29,6 +30,7 @@ namespace SkyCircuit.AI
         [SerializeField] private bool boostOnStraight = false;
 
         private float lastTurnDirection = 1f;
+        private CompetitorProfile appliedProfile;
 
         public void Configure(
             SkyCircuitFlightController flightController,
@@ -40,6 +42,7 @@ namespace SkyCircuit.AI
             competitor = aiCompetitor;
             route = buoyRoute;
             match = matchController;
+            ApplyProfile(competitor != null ? competitor.Profile : null);
         }
 
         public void ConfigureDogfight(Competitor opponent, DogfightController dogfightController)
@@ -59,10 +62,38 @@ namespace SkyCircuit.AI
             {
                 competitor = GetComponent<Competitor>();
             }
+
+            ApplyProfile(competitor != null ? competitor.Profile : null);
+        }
+
+        public void ApplyProfile(CompetitorProfile profile)
+        {
+            if (profile == null || appliedProfile == profile)
+            {
+                return;
+            }
+
+            RouteAIPilotSettings settings = profile.AiPilot.Validated();
+            turnGain = settings.turnGain;
+            verticalRange = settings.verticalRange;
+            routeSpeed = settings.routeSpeed;
+            closeTargetSpeed = settings.closeTargetSpeed;
+            overshootSpeed = settings.overshootSpeed;
+            approachSlowRadius = settings.approachSlowRadius;
+            overshootRecoveryRadius = settings.overshootRecoveryRadius;
+            speedTolerance = settings.speedTolerance;
+            brakeInput = settings.brakeInput;
+            dogfightEngageDistance = settings.dogfightEngageDistance;
+            dogfightBehindOffset = settings.dogfightBehindOffset;
+            dogfightVerticalOffset = settings.dogfightVerticalOffset;
+            boostOnStraight = settings.boostOnStraight;
+            appliedProfile = profile;
         }
 
         private void Update()
         {
+            ApplyProfile(competitor != null ? competitor.Profile : null);
+
             if (controller == null)
             {
                 return;

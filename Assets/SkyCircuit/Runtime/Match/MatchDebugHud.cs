@@ -23,6 +23,11 @@ namespace SkyCircuit.Match
             title = "Sky Circuit V0.3 Dogfight Prototype";
         }
 
+        public void SetTitle(string hudTitle)
+        {
+            title = hudTitle;
+        }
+
         private void Awake()
         {
             labelStyle = new GUIStyle
@@ -45,7 +50,7 @@ namespace SkyCircuit.Match
                 Awake();
             }
 
-            GUILayout.BeginArea(new Rect(18f, 18f, 520f, 305f), GUI.skin.box);
+            GUILayout.BeginArea(new Rect(18f, 18f, 560f, 340f), GUI.skin.box);
             GUILayout.Label(title, titleStyle);
             GUILayout.Space(4f);
 
@@ -70,6 +75,7 @@ namespace SkyCircuit.Match
             Competitor opponent = match.Opponent;
             GUILayout.Space(6f);
             GUILayout.Label($"{NameOf(player)}: {ScoreOf(player)}    {NameOf(opponent)}: {ScoreOf(opponent)}", labelStyle);
+            GUILayout.Label($"Shoes: {ProfileNameOf(player)}    AI: {ProfileNameOf(opponent)}", labelStyle);
             GUILayout.Label($"Buoys: {BuoyScoreOf(player)} / {BuoyScoreOf(opponent)}    Back Hits: {BackHitScoreOf(player)} / {BackHitScoreOf(opponent)}", labelStyle);
             GUILayout.Label($"Speed: {SpeedText(player)}    AI: {SpeedText(opponent)}", labelStyle);
 
@@ -92,6 +98,7 @@ namespace SkyCircuit.Match
             }
 
             GUILayout.Space(6f);
+            GUILayout.Label("1 Speeder  2 Fighter  3 All-Rounder", labelStyle);
             GUILayout.Label("W/S speed  Mouse steer  Space/Ctrl altitude", labelStyle);
             GUILayout.EndArea();
         }
@@ -114,6 +121,11 @@ namespace SkyCircuit.Match
         private static int BackHitScoreOf(Competitor competitor)
         {
             return competitor != null ? competitor.BackHitScoreCount : 0;
+        }
+
+        private static string ProfileNameOf(Competitor competitor)
+        {
+            return competitor != null ? competitor.ProfileName : "--";
         }
 
         private static string SpeedText(Competitor competitor)

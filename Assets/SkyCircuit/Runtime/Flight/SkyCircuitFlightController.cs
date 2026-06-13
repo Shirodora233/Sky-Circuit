@@ -1,3 +1,4 @@
+using SkyCircuit.Profiles;
 using UnityEngine;
 
 namespace SkyCircuit.Flight
@@ -5,6 +6,7 @@ namespace SkyCircuit.Flight
     [RequireComponent(typeof(Rigidbody))]
     public sealed class SkyCircuitFlightController : MonoBehaviour
     {
+        [SerializeField] private CompetitorProfile profile;
         [SerializeField] private FlightSpeedModule speedModule = new FlightSpeedModule();
 
         [Header("Steering")]
@@ -28,6 +30,7 @@ namespace SkyCircuit.Flight
         public float CurrentSpeed => speedModule != null ? speedModule.CurrentSpeed : 0f;
         public float NormalizedSpeed => speedModule != null ? speedModule.NormalizedSpeed : 0f;
         public bool IsBoosting => speedModule != null && speedModule.IsBoosting;
+        public CompetitorProfile Profile => profile;
         public Quaternion ControlRotation => Quaternion.Euler(pitch, yaw, 0f);
 
         private void Awake()
@@ -41,7 +44,27 @@ namespace SkyCircuit.Flight
             yaw = angles.y;
             pitch = NormalizeAngle(angles.x);
             EnsureSpeedModule();
+            ApplyProfile(profile, false);
             speedModule.Reset(body.rotation);
+        }
+
+        public void ApplyProfile(CompetitorProfile newProfile, bool resetSpeed)
+        {
+            if (newProfile == null)
+            {
+                return;
+            }
+
+            profile = newProfile;
+            EnsureSpeedModule();
+            speedModule.ApplySettings(profile.Speed, !resetSpeed);
+            ApplySteeringSettings(profile.Steering);
+
+            if (resetSpeed)
+            {
+                Quaternion rotation = body != null ? body.rotation : transform.rotation;
+                speedModule.Reset(rotation);
+            }
         }
 
         public void SetInput(FlightInputState state)
@@ -78,7 +101,20 @@ namespace SkyCircuit.Flight
             pitch = NormalizeAngle(angles.x);
             latestLookBank = 0f;
             EnsureSpeedModule();
+            ApplyProfile(profile, false);
             speedModule.Reset(rotation);
+        }
+
+        private void ApplySteeringSettings(FlightSteeringSettings settings)
+        {
+            settings = settings.Validated();
+            mouseYawSensitivity = settings.mouseYawSensitivity;
+            mousePitchSensitivity = settings.mousePitchSensitivity;
+            keyboardYawRate = settings.keyboardYawRate;
+            maxPitch = settings.maxPitch;
+            maxBank = settings.maxBank;
+            rotationSharpness = settings.rotationSharpness;
+            externalImpulseDecay = settings.externalImpulseDecay;
         }
 
         private void UpdateControlRotation(float dt, Vector2 lookDelta)
