@@ -494,6 +494,7 @@ GameObject:
   m_Component:
   - component: {fileID: 157420042}
   - component: {fileID: 157420043}
+  - component: {fileID: 157420044}
   m_Layer: 0
   m_Name: Match HUD
   m_TagString: Untagged
@@ -531,6 +532,32 @@ MonoBehaviour:
   match: {fileID: 2113669732}
   dogfight: {fileID: 233450447}
   title: Sky Circuit V0.4 Profile Prototype
+--- !u!114 &157420044
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 157420041}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aaf52f8ae7064967b613f949a613a3fc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SkyCircuit.Presentation.MatchWorldIndicator
+  targetCamera: {fileID: 947344229}
+  match: {fileID: 2113669732}
+  route: {fileID: 685657443}
+  screenMargin: 48
+  viewportInsetX: 0.06
+  viewportInsetY: 0.1
+  worldLabelOffset: 5
+  behindDeadZone: 0.22
+  behindEdgeAngle: 85
+  behindEasePower: 2
+  touchPromptMultiplier: 1.35
+  targetColor: {r: 0.35, g: 0.9, b: 1, a: 1}
+  touchColor: {r: 1, g: 0.84, b: 0.35, a: 1}
+  shadowColor: {r: 0, g: 0, b: 0, a: 0.85}
 --- !u!1 &191252421
 GameObject:
   m_ObjectHideFlags: 0

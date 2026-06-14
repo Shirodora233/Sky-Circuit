@@ -2,6 +2,7 @@ using System.IO;
 using SkyCircuit.AI;
 using SkyCircuit.Match;
 using SkyCircuit.Profiles;
+using SkyCircuit.Presentation;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -32,11 +33,14 @@ namespace SkyCircuit.EditorTools
             Competitor player = FindComponentOnNamedObject<Competitor>("Player Competitor");
             Competitor opponent = FindComponentOnNamedObject<Competitor>("AI Competitor");
             MatchDebugHud hud = FindComponentOnNamedObject<MatchDebugHud>("Match HUD");
+            MatchController match = FindComponentOnNamedObject<MatchController>("Match Controller");
+            BuoyRoute route = FindComponentOnNamedObject<BuoyRoute>("Buoy Route");
+            Camera mainCamera = FindComponentOnNamedObject<Camera>("Main Camera");
             RouteAIPilotController aiPilot = FindComponentOnNamedObject<RouteAIPilotController>("AI Competitor");
 
-            if (player == null || opponent == null)
+            if (player == null || opponent == null || match == null || route == null)
             {
-                Debug.LogError("Sky Circuit V0.4 build could not find the V0.3 competitors.");
+                Debug.LogError("Sky Circuit V0.4 build could not find the V0.3 match objects.");
                 return;
             }
 
@@ -59,6 +63,13 @@ namespace SkyCircuit.EditorTools
             if (hud != null)
             {
                 hud.SetTitle("Sky Circuit V0.4 Profile Prototype");
+                MatchWorldIndicator indicator = hud.GetComponent<MatchWorldIndicator>();
+                if (indicator == null)
+                {
+                    indicator = hud.gameObject.AddComponent<MatchWorldIndicator>();
+                }
+
+                indicator.Configure(mainCamera, match, route);
             }
 
             EditorSceneManager.SaveScene(scene, ScenePath);
