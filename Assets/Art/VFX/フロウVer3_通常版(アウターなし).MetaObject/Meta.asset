@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63b589176a34b344b9ccbee2b7e7114a, type: 3}
+  m_Name: Meta
+  m_EditorClassIdentifier: VRM::VRM.VRMMetaObject
+  ExporterVersion: UniVRM-0.98.0
+  Title: "\u30D5\u30ED\u30A6"
+  Version: 2.1
+  Author: "\u67FE\u6728\u9580(Kado)"
+  ContactInformation: "\uFF20masakikado(Twitter)"
+  Reference: 
+  Thumbnail: {fileID: 2800000, guid: e8774acd30499d34394d431fa1aa0941, type: 3}
+  AllowedUser: 2
+  ViolentUssage: 0
+  SexualUssage: 0
+  CommercialUssage: 1
+  OtherPermissionUrl: https://note.com/masakikado/n/nac5949dd52a6
+  LicenseType: 0
+  OtherLicenseUrl: 

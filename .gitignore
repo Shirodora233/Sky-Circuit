@@ -20,6 +20,26 @@
 /[Uu]ser[Ss]ettings/
 *.log
 
+# OS-generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Editor and merge leftovers
+*.bak
+*.orig
+*.rej
+*.swp
+*.swo
+*~
+.history/
+.ionide/
+
 # Unity-generated upgrade reports
 /[Uu]pgrade[Ll]og*.htm
 /[Uu]pgrade[Ll]og*.html
@@ -34,6 +54,12 @@
 
 # Recordings can get excessive in size
 /[Rr]ecordings/
+
+# Unity profiler, diagnostics, and local build artifacts
+/[Pp]rofilerCaptures/
+*.stackdump
+*.trace
+*.trace.meta
 
 # Uncomment this line if you wish to ignore the asset store tools plugin
 # /[Aa]ssets/AssetStoreTools*
@@ -52,6 +78,11 @@
 
 # Gradle cache directory
 .gradle/
+
+# Common local package/cache folders created by tooling
+.cache/
+.sass-cache/
+.eslintcache
 
 # Coplay local package data
 /Packages/Coplay/
