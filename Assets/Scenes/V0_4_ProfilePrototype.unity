@@ -495,6 +495,7 @@ GameObject:
   - component: {fileID: 157420042}
   - component: {fileID: 157420043}
   - component: {fileID: 157420044}
+  - component: {fileID: 157420045}
   m_Layer: 0
   m_Name: Match HUD
   m_TagString: Untagged
@@ -558,6 +559,42 @@ MonoBehaviour:
   targetColor: {r: 0.35, g: 0.9, b: 1, a: 1}
   touchColor: {r: 1, g: 0.84, b: 0.35, a: 1}
   shadowColor: {r: 0, g: 0, b: 0, a: 0.85}
+--- !u!114 &157420045
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 157420041}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2477b34fa2d440b38e05c86b94667534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SkyCircuit.Presentation.MatchPlayerIndicator
+  targetCamera: {fileID: 947344229}
+  match: {fileID: 2113669732}
+  dogfight: {fileID: 233450447}
+  requireDogfightUnlocked: 1
+  threatRange: 55
+  fullIntensityDistance: 16
+  criticalThreatRange: 14
+  criticalBehindDotThreshold: -0.35
+  criticalFacingDotThreshold: 0.2
+  onScreenInset: 0.04
+  rearCenterRatio: 0.38
+  edgeHoldTime: 0.25
+  fadeSharpness: 10
+  edgeThickness: 120
+  sideBandHeight: 0.72
+  bottomBandWidth: 0.78
+  edgeBands: 12
+  edgeFalloffPower: 1.8
+  minAlpha: 0.1
+  maxAlpha: 0.5
+  pulseStrength: 0.12
+  pulseSpeed: 5
+  warningColor: {r: 1, g: 0.48, b: 0.12, a: 1}
+  dangerColor: {r: 1, g: 0.08, b: 0.04, a: 1}
 --- !u!1 &191252421
 GameObject:
   m_ObjectHideFlags: 0

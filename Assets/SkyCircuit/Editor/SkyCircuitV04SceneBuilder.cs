@@ -1,5 +1,6 @@
 using System.IO;
 using SkyCircuit.AI;
+using SkyCircuit.Combat;
 using SkyCircuit.Match;
 using SkyCircuit.Profiles;
 using SkyCircuit.Presentation;
@@ -34,6 +35,7 @@ namespace SkyCircuit.EditorTools
             Competitor opponent = FindComponentOnNamedObject<Competitor>("AI Competitor");
             MatchDebugHud hud = FindComponentOnNamedObject<MatchDebugHud>("Match HUD");
             MatchController match = FindComponentOnNamedObject<MatchController>("Match Controller");
+            DogfightController dogfight = FindComponentOnNamedObject<DogfightController>("Dogfight Controller");
             BuoyRoute route = FindComponentOnNamedObject<BuoyRoute>("Buoy Route");
             Camera mainCamera = FindComponentOnNamedObject<Camera>("Main Camera");
             RouteAIPilotController aiPilot = FindComponentOnNamedObject<RouteAIPilotController>("AI Competitor");
@@ -70,6 +72,14 @@ namespace SkyCircuit.EditorTools
                 }
 
                 indicator.Configure(mainCamera, match, route);
+
+                MatchPlayerIndicator playerIndicator = hud.GetComponent<MatchPlayerIndicator>();
+                if (playerIndicator == null)
+                {
+                    playerIndicator = hud.gameObject.AddComponent<MatchPlayerIndicator>();
+                }
+
+                playerIndicator.Configure(mainCamera, match, dogfight);
             }
 
             EditorSceneManager.SaveScene(scene, ScenePath);
