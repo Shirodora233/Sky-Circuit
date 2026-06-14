@@ -88,9 +88,14 @@ namespace SkyCircuit.Flight
                 return;
             }
 
-            if (input.Throttle > 0.05f)
+            if (input.Boost)
             {
-                float targetSpeed = input.Boost ? absoluteMaxSpeed : poweredMaxSpeed;
+                float dashAcceleration = input.BoostAcceleration > 0f ? input.BoostAcceleration : acceleration;
+                currentSpeed = Mathf.MoveTowards(currentSpeed, absoluteMaxSpeed, dashAcceleration * dt);
+            }
+            else if (input.Throttle > 0.05f)
+            {
+                float targetSpeed = poweredMaxSpeed;
                 if (currentSpeed < targetSpeed)
                 {
                     float accelScale = CalculateAccelerationScale(targetSpeed);
@@ -182,7 +187,7 @@ namespace SkyCircuit.Flight
         private FlightSpeedOutput BuildOutput(FlightSpeedInput input, FlightSpeedContext context)
         {
             currentSpeed = Mathf.Clamp(currentSpeed, minSpeed, absoluteMaxSpeed);
-            IsBoosting = currentSpeed > poweredMaxSpeed + 1f;
+            IsBoosting = input.Boost || currentSpeed > poweredMaxSpeed + 1f;
 
             Vector3 forwardVelocity = context.BodyRotation * Vector3.forward * currentSpeed;
             Vector3 verticalAssist = Vector3.up * (input.Vertical * verticalAssistSpeed);
@@ -209,12 +214,14 @@ namespace SkyCircuit.Flight
         public readonly float Throttle;
         public readonly float Vertical;
         public readonly bool Boost;
+        public readonly float BoostAcceleration;
 
-        public FlightSpeedInput(float throttle, float vertical, bool boost)
+        public FlightSpeedInput(float throttle, float vertical, bool boost, float boostAcceleration = 0f)
         {
             Throttle = Mathf.Clamp(throttle, -1f, 1f);
             Vertical = Mathf.Clamp(vertical, -1f, 1f);
             Boost = boost;
+            BoostAcceleration = Mathf.Max(0f, boostAcceleration);
         }
     }
 

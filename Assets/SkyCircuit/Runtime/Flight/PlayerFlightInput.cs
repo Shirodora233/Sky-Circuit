@@ -55,7 +55,7 @@ namespace SkyCircuit.Flight
                 throttle += ReadKey(keyboard.wKey) - ReadKey(keyboard.sKey);
                 turn += ReadKey(keyboard.dKey) - ReadKey(keyboard.aKey);
                 vertical += ReadKey(keyboard.spaceKey) - Mathf.Max(ReadKey(keyboard.leftCtrlKey), ReadKey(keyboard.rightCtrlKey), ReadKey(keyboard.cKey));
-                boost |= keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed;
+                boost |= keyboard.qKey.isPressed;
             }
 
             var mouse = Mouse.current;

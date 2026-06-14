@@ -66,6 +66,7 @@ namespace SkyCircuit.Match
             backHitScoreCount = 0;
             targetIndex = 0;
             ResetToSpawn();
+            controller?.ResetDashSkill();
         }
 
         public void ResetToSpawn()

@@ -50,7 +50,7 @@ namespace SkyCircuit.Match
                 Awake();
             }
 
-            GUILayout.BeginArea(new Rect(18f, 18f, 560f, 340f), GUI.skin.box);
+            GUILayout.BeginArea(new Rect(18f, 18f, 560f, 365f), GUI.skin.box);
             GUILayout.Label(title, titleStyle);
             GUILayout.Space(4f);
 
@@ -78,6 +78,7 @@ namespace SkyCircuit.Match
             GUILayout.Label($"Shoes: {ProfileNameOf(player)}    AI: {ProfileNameOf(opponent)}", labelStyle);
             GUILayout.Label($"Buoys: {BuoyScoreOf(player)} / {BuoyScoreOf(opponent)}    Back Hits: {BackHitScoreOf(player)} / {BackHitScoreOf(opponent)}", labelStyle);
             GUILayout.Label($"Speed: {SpeedText(player)}    AI: {SpeedText(opponent)}", labelStyle);
+            GUILayout.Label($"Dash: {DashText(player)}    AI: {DashText(opponent)}", labelStyle);
 
             if (player != null)
             {
@@ -99,7 +100,7 @@ namespace SkyCircuit.Match
 
             GUILayout.Space(6f);
             GUILayout.Label("1 Speeder  2 Fighter  3 All-Rounder", labelStyle);
-            GUILayout.Label("W/S speed  Mouse steer  Space/Ctrl altitude", labelStyle);
+            GUILayout.Label("W/S speed  Mouse steer  Space/Ctrl altitude  Q dash", labelStyle);
             GUILayout.EndArea();
         }
 
@@ -138,6 +139,30 @@ namespace SkyCircuit.Match
             float flightSpeed = competitor.Controller.CurrentSpeed;
             float bodySpeed = BodySpeedOf(competitor);
             return $"{flightSpeed:0.0} (Vel {bodySpeed:0.0})";
+        }
+
+        private static string DashText(Competitor competitor)
+        {
+            if (competitor == null || competitor.Controller == null)
+            {
+                return "--";
+            }
+
+            string state = string.Empty;
+            if (competitor.Controller.IsDashing)
+            {
+                state = " Dashing";
+            }
+            else if (competitor.Controller.IsDashCoolingDown)
+            {
+                state = $" CD {competitor.Controller.DashCooldownRemaining:0.0}";
+            }
+            else if (competitor.Controller.RequiresDashRelease)
+            {
+                state = " Release";
+            }
+
+            return $"{competitor.Controller.DashCharge:0}/{competitor.Controller.DashMaxCharge:0}{state}";
         }
 
         private static float BodySpeedOf(Competitor competitor)

@@ -8,6 +8,7 @@ namespace SkyCircuit.Flight
     {
         [SerializeField] private CompetitorProfile profile;
         [SerializeField] private FlightSpeedModule speedModule = new FlightSpeedModule();
+        [SerializeField] private FlightDashSkillModule dashSkillModule = new FlightDashSkillModule();
 
         [Header("Steering")]
         [SerializeField] private float mouseYawSensitivity = 0.18f;
@@ -30,6 +31,13 @@ namespace SkyCircuit.Flight
         public float CurrentSpeed => speedModule != null ? speedModule.CurrentSpeed : 0f;
         public float NormalizedSpeed => speedModule != null ? speedModule.NormalizedSpeed : 0f;
         public bool IsBoosting => speedModule != null && speedModule.IsBoosting;
+        public float DashCharge => dashSkillModule != null ? dashSkillModule.CurrentCharge : 0f;
+        public float DashMaxCharge => dashSkillModule != null ? dashSkillModule.MaxCharge : 0f;
+        public float NormalizedDashCharge => dashSkillModule != null ? dashSkillModule.NormalizedCharge : 0f;
+        public float DashCooldownRemaining => dashSkillModule != null ? dashSkillModule.CooldownRemaining : 0f;
+        public bool IsDashCoolingDown => dashSkillModule != null && dashSkillModule.IsCoolingDown;
+        public bool RequiresDashRelease => dashSkillModule != null && dashSkillModule.RequiresDashRelease;
+        public bool IsDashing => dashSkillModule != null && dashSkillModule.IsDashing;
         public CompetitorProfile Profile => profile;
         public Quaternion ControlRotation => Quaternion.Euler(pitch, yaw, 0f);
 
@@ -44,8 +52,13 @@ namespace SkyCircuit.Flight
             yaw = angles.y;
             pitch = NormalizeAngle(angles.x);
             EnsureSpeedModule();
-            ApplyProfile(profile, false);
-            speedModule.Reset(body.rotation);
+            EnsureDashSkillModule();
+            ApplyProfile(profile, true);
+            if (profile == null)
+            {
+                speedModule.Reset(body.rotation);
+                dashSkillModule.Reset();
+            }
         }
 
         public void ApplyProfile(CompetitorProfile newProfile, bool resetSpeed)
@@ -57,14 +70,23 @@ namespace SkyCircuit.Flight
 
             profile = newProfile;
             EnsureSpeedModule();
+            EnsureDashSkillModule();
             speedModule.ApplySettings(profile.Speed, !resetSpeed);
+            dashSkillModule.ApplySettings(profile.DashSkill, !resetSpeed);
             ApplySteeringSettings(profile.Steering);
 
             if (resetSpeed)
             {
                 Quaternion rotation = body != null ? body.rotation : transform.rotation;
                 speedModule.Reset(rotation);
+                dashSkillModule.Reset();
             }
+        }
+
+        public void ResetDashSkill()
+        {
+            EnsureDashSkillModule();
+            dashSkillModule.Reset();
         }
 
         public void SetInput(FlightInputState state)
@@ -83,8 +105,8 @@ namespace SkyCircuit.Flight
         private void FixedUpdate()
         {
             float dt = Time.fixedDeltaTime;
-            UpdateRotation(dt);
-            UpdateVelocity(dt);
+            float actualTurnRate = UpdateRotation(dt);
+            UpdateVelocity(dt, actualTurnRate);
         }
 
         public void ResetFlight(Vector3 position, Quaternion rotation)
@@ -101,6 +123,7 @@ namespace SkyCircuit.Flight
             pitch = NormalizeAngle(angles.x);
             latestLookBank = 0f;
             EnsureSpeedModule();
+            EnsureDashSkillModule();
             ApplyProfile(profile, false);
             speedModule.Reset(rotation);
         }
@@ -127,20 +150,34 @@ namespace SkyCircuit.Flight
             latestLookBank = Mathf.Clamp(lookDelta.x * 0.025f, -1f, 1f);
         }
 
-        private void UpdateRotation(float dt)
+        private float UpdateRotation(float dt)
         {
             float bankInput = Mathf.Clamp(input.Turn + latestLookBank, -1f, 1f);
             float bank = -bankInput * maxBank;
 
+            Quaternion currentRotation = body.rotation;
             Quaternion targetRotation = Quaternion.Euler(pitch, yaw, bank);
             float blend = DampBlend(rotationSharpness, dt);
-            body.MoveRotation(Quaternion.Slerp(body.rotation, targetRotation, blend));
+            Quaternion nextRotation = Quaternion.Slerp(currentRotation, targetRotation, blend);
+            body.MoveRotation(nextRotation);
+
+            return dt > 0f ? Quaternion.Angle(currentRotation, nextRotation) / dt : 0f;
         }
 
-        private void UpdateVelocity(float dt)
+        private void UpdateVelocity(float dt, float actualTurnRate)
         {
             EnsureSpeedModule();
-            var speedInput = new FlightSpeedInput(input.Throttle, input.Vertical, input.Boost);
+            EnsureDashSkillModule();
+
+            var dashInput = new FlightDashSkillInput(input.Boost);
+            var dashContext = new FlightDashSkillContext(dt, speedModule.CurrentSpeed, actualTurnRate);
+            FlightDashSkillOutput dashOutput = dashSkillModule.Step(dashInput, dashContext);
+
+            var speedInput = new FlightSpeedInput(
+                input.Throttle,
+                input.Vertical,
+                dashOutput.IsDashing,
+                dashOutput.DashAcceleration);
             var speedContext = new FlightSpeedContext(dt, body.rotation, body.linearVelocity);
             FlightSpeedOutput output = speedModule.Step(speedInput, speedContext);
 
@@ -152,6 +189,11 @@ namespace SkyCircuit.Flight
         private void EnsureSpeedModule()
         {
             speedModule ??= new FlightSpeedModule();
+        }
+
+        private void EnsureDashSkillModule()
+        {
+            dashSkillModule ??= new FlightDashSkillModule();
         }
 
         private void EnsureBody()

@@ -23,6 +23,9 @@ namespace SkyCircuit.Profiles
         [Header("Flight Steering")]
         [SerializeField] private FlightSteeringSettings steering = FlightSteeringSettings.AllRounder();
 
+        [Header("Dash Skill")]
+        [SerializeField] private DashSkillSettings dashSkill = DashSkillSettings.AllRounder();
+
         [Header("AI Pilot")]
         [SerializeField] private RouteAIPilotSettings aiPilot = RouteAIPilotSettings.AllRounder();
 
@@ -30,6 +33,7 @@ namespace SkyCircuit.Profiles
         public CompetitorArchetype Archetype => archetype;
         public FlightSpeedSettings Speed => speed;
         public FlightSteeringSettings Steering => steering;
+        public DashSkillSettings DashSkill => dashSkill;
         public RouteAIPilotSettings AiPilot => aiPilot;
 
         public void Configure(
@@ -37,12 +41,14 @@ namespace SkyCircuit.Profiles
             CompetitorArchetype profileArchetype,
             FlightSpeedSettings speedSettings,
             FlightSteeringSettings steeringSettings,
+            DashSkillSettings dashSkillSettings,
             RouteAIPilotSettings aiPilotSettings)
         {
             displayName = profileName;
             archetype = profileArchetype;
             speed = speedSettings.Validated();
             steering = steeringSettings.Validated();
+            dashSkill = dashSkillSettings.Validated();
             aiPilot = aiPilotSettings.Validated();
         }
 
@@ -50,6 +56,7 @@ namespace SkyCircuit.Profiles
         {
             speed = speed.Validated();
             steering = steering.Validated();
+            dashSkill = dashSkill.Validated();
             aiPilot = aiPilot.Validated();
         }
     }
@@ -229,6 +236,87 @@ namespace SkyCircuit.Profiles
             maxBank = Mathf.Clamp(maxBank, 0f, 89f);
             rotationSharpness = Mathf.Max(0f, rotationSharpness);
             externalImpulseDecay = Mathf.Max(0f, externalImpulseDecay);
+            return this;
+        }
+    }
+
+    [Serializable]
+    public struct DashSkillSettings
+    {
+        [Min(0f)] public float maxCharge;
+        [Min(0f)] public float startingCharge;
+        [Min(0f)] public float baseTurnChargeRate;
+        [Min(0f)] public float typeChargeMultiplier;
+        [Min(0f)] public float chargeMinSpeed;
+        [Min(0f)] public float chargeReferenceSpeed;
+        [Min(0f)] public float chargeReferenceTurnRate;
+        [Min(0f)] public float dashDrainRate;
+        [Min(0f)] public float dashAcceleration;
+        [Min(0f)] public float cooldownDuration;
+
+        public static DashSkillSettings Speeder()
+        {
+            return new DashSkillSettings
+            {
+                maxCharge = 100f,
+                startingCharge = 30f,
+                baseTurnChargeRate = 18f,
+                typeChargeMultiplier = 0.55f,
+                chargeMinSpeed = 10f,
+                chargeReferenceSpeed = 48f,
+                chargeReferenceTurnRate = 130f,
+                dashDrainRate = 20f,
+                dashAcceleration = 18f,
+                cooldownDuration = 3f,
+            };
+        }
+
+        public static DashSkillSettings Fighter()
+        {
+            return new DashSkillSettings
+            {
+                maxCharge = 100f,
+                startingCharge = 45f,
+                baseTurnChargeRate = 18f,
+                typeChargeMultiplier = 1.45f,
+                chargeMinSpeed = 6f,
+                chargeReferenceSpeed = 36f,
+                chargeReferenceTurnRate = 170f,
+                dashDrainRate = 34f,
+                dashAcceleration = 52f,
+                cooldownDuration = 2f,
+            };
+        }
+
+        public static DashSkillSettings AllRounder()
+        {
+            return new DashSkillSettings
+            {
+                maxCharge = 100f,
+                startingCharge = 40f,
+                baseTurnChargeRate = 18f,
+                typeChargeMultiplier = 1f,
+                chargeMinSpeed = 8f,
+                chargeReferenceSpeed = 42f,
+                chargeReferenceTurnRate = 150f,
+                dashDrainRate = 26f,
+                dashAcceleration = 34f,
+                cooldownDuration = 2.5f,
+            };
+        }
+
+        public DashSkillSettings Validated()
+        {
+            maxCharge = Mathf.Max(0f, maxCharge);
+            startingCharge = Mathf.Clamp(startingCharge, 0f, maxCharge);
+            baseTurnChargeRate = Mathf.Max(0f, baseTurnChargeRate);
+            typeChargeMultiplier = Mathf.Max(0f, typeChargeMultiplier);
+            chargeMinSpeed = Mathf.Max(0f, chargeMinSpeed);
+            chargeReferenceSpeed = Mathf.Max(chargeMinSpeed + 0.01f, chargeReferenceSpeed);
+            chargeReferenceTurnRate = Mathf.Max(0.01f, chargeReferenceTurnRate);
+            dashDrainRate = Mathf.Max(0f, dashDrainRate);
+            dashAcceleration = Mathf.Max(0f, dashAcceleration);
+            cooldownDuration = Mathf.Max(0f, cooldownDuration);
             return this;
         }
     }

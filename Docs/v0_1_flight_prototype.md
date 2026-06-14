@@ -30,12 +30,12 @@ This generates:
 - Mouse: look / steer
 - `Space`: ascend
 - `Left Ctrl`, `Right Ctrl`, or `C`: descend
-- `Shift`: boost while accelerating
+- `Q`: dash while charge is available
 - `Esc`: unlock cursor
 - Left click Game view: lock cursor again
 
 Releasing `W/S` holds the current speed. Holding `S` can brake all the way to `0`.
-Holding `W` can maintain the powered speed cap, while dives or boost can briefly exceed it up to the absolute speed cap.
+Holding `W` can maintain the powered speed cap, while dives or dash can briefly exceed it up to the absolute speed cap.
 Climbing trades speed for altitude, diving converts altitude back into speed, overspeed bleeds back down after descent ends, and sustained sharp turns bleed speed.
 
 ## Acceptance Checks

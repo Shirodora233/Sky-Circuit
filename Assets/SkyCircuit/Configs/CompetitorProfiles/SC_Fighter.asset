@@ -39,6 +39,17 @@ MonoBehaviour:
     maxBank: 58
     rotationSharpness: 38
     externalImpulseDecay: 5.2
+  dashSkill:
+    maxCharge: 100
+    startingCharge: 45
+    baseTurnChargeRate: 18
+    typeChargeMultiplier: 1.45
+    chargeMinSpeed: 6
+    chargeReferenceSpeed: 36
+    chargeReferenceTurnRate: 170
+    dashDrainRate: 34
+    dashAcceleration: 52
+    cooldownDuration: 2
   aiPilot:
     turnGain: 3.1
     verticalRange: 14

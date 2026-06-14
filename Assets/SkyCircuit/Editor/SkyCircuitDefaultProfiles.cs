@@ -37,6 +37,7 @@ namespace SkyCircuit.EditorTools
                 CompetitorArchetype.Speeder,
                 FlightSpeedSettings.Speeder(),
                 FlightSteeringSettings.Speeder(),
+                DashSkillSettings.Speeder(),
                 RouteAIPilotSettings.Speeder(),
                 overwriteExisting);
 
@@ -46,6 +47,7 @@ namespace SkyCircuit.EditorTools
                 CompetitorArchetype.Fighter,
                 FlightSpeedSettings.Fighter(),
                 FlightSteeringSettings.Fighter(),
+                DashSkillSettings.Fighter(),
                 RouteAIPilotSettings.Fighter(),
                 overwriteExisting);
 
@@ -55,6 +57,7 @@ namespace SkyCircuit.EditorTools
                 CompetitorArchetype.AllRounder,
                 FlightSpeedSettings.AllRounder(),
                 FlightSteeringSettings.AllRounder(),
+                DashSkillSettings.AllRounder(),
                 RouteAIPilotSettings.AllRounder(),
                 overwriteExisting);
 
@@ -67,6 +70,7 @@ namespace SkyCircuit.EditorTools
             CompetitorArchetype archetype,
             FlightSpeedSettings speed,
             FlightSteeringSettings steering,
+            DashSkillSettings dashSkill,
             RouteAIPilotSettings aiPilot,
             bool overwriteExisting)
         {
@@ -80,7 +84,7 @@ namespace SkyCircuit.EditorTools
 
             if (overwriteExisting)
             {
-                profile.Configure(displayName, archetype, speed, steering, aiPilot);
+                profile.Configure(displayName, archetype, speed, steering, dashSkill, aiPilot);
                 EditorUtility.SetDirty(profile);
             }
 

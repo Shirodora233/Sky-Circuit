@@ -36,9 +36,27 @@ Each profile exposes:
 
 - Flight Speed: speed caps, acceleration, vertical energy, turn drag.
 - Flight Steering: yaw, pitch, bank, rotation response, external impulse decay.
+- Dash Skill: charge size, starting charge, turn-charge scaling, drain rate, dash acceleration.
 - AI Pilot: route speed, braking, vertical correction, dogfight engage distance.
 
 The V0.4 scene starts the player as All-Rounder and the AI as Speeder.
+
+## Dash Skill
+
+Hold `Q` to dash while charge is available. Dash does not require holding `W`; it pushes toward the profile's absolute speed cap using the profile's dash acceleration.
+When charge is fully depleted, dash enters a short profile-defined cooldown and requires releasing `Q` before it can trigger again.
+
+Dash charge is restored only when not dashing, not cooling down, and not holding the dash key after depletion. The recharge rate is based on current speed, actual body turn rate, and the profile's type multiplier:
+
+```text
+chargeRate = baseTurnChargeRate
+  * typeChargeMultiplier
+  * speedFactor
+  * turnFactor^2
+```
+
+`speedFactor` reaches full value near `chargeReferenceSpeed`, and `turnFactor` reaches full value near `chargeReferenceTurnRate`.
+This rewards real high-speed maneuvering and avoids low-speed direction spam.
 
 ## Notes
 
