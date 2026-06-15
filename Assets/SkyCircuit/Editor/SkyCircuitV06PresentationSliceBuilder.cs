@@ -2,7 +2,9 @@ using System;
 using System.IO;
 using System.Linq;
 using SkyCircuit.CameraRigging;
+using SkyCircuit.Combat;
 using SkyCircuit.Flight;
+using SkyCircuit.Match;
 using SkyCircuit.Practice;
 using SkyCircuit.Presentation;
 using UnityEditor;
@@ -15,6 +17,7 @@ namespace SkyCircuit.EditorTools
 {
     public static class SkyCircuitV06PresentationSliceBuilder
     {
+        private const string SourceScenePath = "Assets/Scenes/V0_3_DogfightPrototype.unity";
         private const string ScenePath = "Assets/Scenes/V0_6_PresentationSlice.unity";
         private const string ArtSearchFolder = "Assets/Art";
         private const string FlyingAnimationPath = "Assets/Animation/Flying.fbx";
@@ -24,47 +27,63 @@ namespace SkyCircuit.EditorTools
         private const float CharacterVisualPitch = -18f;
         private static readonly Vector3 DemoCameraOffset = new Vector3(1.8f, 4.6f, -7.6f);
         private static readonly Vector3 DemoAimOffset = new Vector3(0f, 0.8f, 1.6f);
+        private static readonly Vector3 PresentationCameraOffset = new Vector3(0f, 6.4f, -10.8f);
+        private const float PresentationLookAheadDistance = 7.5f;
+        private const float PresentationVerticalLookOffset = 3.2f;
+        private const float PresentationFieldOfView = 62f;
 
-        [MenuItem("Sky Circuit/Build V0.6 Character Flight Demo Scene")]
+        [MenuItem("Sky Circuit/Build V0.6 Presentation Slice Scene")]
         public static void BuildCharacterFlightDemoScene()
         {
             EnsureFolders();
-            SkyCircuitDefaultProfiles.ProfileSet profiles = SkyCircuitDefaultProfiles.EnsureDefaultProfiles(false);
-            AnimatorController animatorController = EnsureDemoAnimatorController();
+            if (!File.Exists(SourceScenePath))
+            {
+                Debug.LogWarning($"Sky Circuit V0.6 build needs {SourceScenePath}. Building earlier prototype scenes first.");
+                SkyCircuitV01SceneBuilder.BuildPrototypeScene();
+                SkyCircuitV02SceneBuilder.BuildMatchPrototypeScene();
+                SkyCircuitV03SceneBuilder.BuildDogfightPrototypeScene();
+                SkyCircuitV04SceneBuilder.BuildProfilePrototypeScene();
+            }
 
-            Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            if (!File.Exists(SourceScenePath))
+            {
+                Debug.LogError($"Sky Circuit V0.6 build could not find {SourceScenePath}.");
+                return;
+            }
+
+            Scene scene = EditorSceneManager.OpenScene(SourceScenePath, OpenSceneMode.Single);
             scene.name = "V0_6_PresentationSlice";
 
-            GameObject environmentRoot = new GameObject("Environment");
-            GameObject demoRoot = new GameObject("Character Flight Demo");
+            Competitor player = FindComponentOnNamedObject<Competitor>("Player Competitor");
+            Competitor opponent = FindComponentOnNamedObject<Competitor>("AI Competitor");
+            MatchController match = FindComponentOnNamedObject<MatchController>("Match Controller");
+            DogfightController dogfight = FindComponentOnNamedObject<DogfightController>("Dogfight Controller");
+            BuoyRoute route = FindComponentOnNamedObject<BuoyRoute>("Buoy Route");
+            Camera mainCamera = FindComponentOnNamedObject<Camera>("Main Camera");
+            MatchDebugHud hud = FindComponentOnNamedObject<MatchDebugHud>("Match HUD");
 
-            CreateLighting(environmentRoot.transform);
-            CreateReferencePlane(environmentRoot.transform);
+            if (player == null || opponent == null)
+            {
+                Debug.LogError("Sky Circuit V0.6 build could not find player and AI competitors in the V0.4 source scene.");
+                return;
+            }
 
-            Transform spawnPoint = CreateSpawnPoint(demoRoot.transform);
-            GameObject player = CreateFlightRoot(demoRoot.transform, spawnPoint);
-            SkyCircuitFlightController flightController = player.GetComponent<SkyCircuitFlightController>();
-            flightController.ApplyProfile(profiles.AllRounder, true);
-            EditorUtility.SetDirty(flightController);
-
-            CreateCharacterVisual(player.transform, animatorController);
-            CreateCharacterPose(player, flightController);
-            CreateCharacterWind(player, flightController);
-            CreateContrail(player, flightController);
-
-            FlightResetVolume reset = player.AddComponent<FlightResetVolume>();
-            reset.Configure(flightController, spawnPoint);
-
-            FlightCameraTargetRig cameraTargetRig = CreateCameraTargetRig(demoRoot.transform, player.transform, flightController);
-            CreateCamera(cameraTargetRig.transform, cameraTargetRig.AimTarget);
-            CreateHud(demoRoot.transform, flightController);
+            SkyCircuitCharacterVisualSceneUtility.EnsureCharacterVisual(player.gameObject, "Player Character Visual");
+            SkyCircuitCharacterVisualSceneUtility.EnsureCharacterVisual(opponent.gameObject, "AI Character Visual");
+            ConfigurePresentationCamera();
+            if (hud != null)
+            {
+                hud.SetTitle("Sky Circuit V0.6 Presentation Slice");
+                ConfigureIndicators(hud, mainCamera, match, route, dogfight);
+                EditorUtility.SetDirty(hud);
+            }
 
             EditorSceneManager.SaveScene(scene, ScenePath);
             SetBuildScene(ScenePath);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            Debug.Log($"Sky Circuit V0.6 character flight demo scene built at {ScenePath}");
+            Debug.Log($"Sky Circuit V0.6 presentation slice scene built at {ScenePath}");
         }
 
         private static void EnsureFolders()
@@ -438,6 +457,102 @@ namespace SkyCircuit.EditorTools
             hudObject.transform.SetParent(parent);
             PresentationFlightDemoHud hud = hudObject.AddComponent<PresentationFlightDemoHud>();
             hud.Configure(controller, "Sky Circuit V0.6 Character Flight Demo");
+        }
+
+        private static void ConfigureIndicators(
+            MatchDebugHud hud,
+            Camera mainCamera,
+            MatchController match,
+            BuoyRoute route,
+            DogfightController dogfight)
+        {
+            if (hud == null)
+            {
+                return;
+            }
+
+            MatchWorldIndicator worldIndicator = hud.GetComponent<MatchWorldIndicator>();
+            if (worldIndicator == null)
+            {
+                worldIndicator = hud.gameObject.AddComponent<MatchWorldIndicator>();
+            }
+
+            worldIndicator.Configure(mainCamera, match, route);
+            EditorUtility.SetDirty(worldIndicator);
+
+            MatchPlayerIndicator playerIndicator = hud.GetComponent<MatchPlayerIndicator>();
+            if (playerIndicator == null)
+            {
+                playerIndicator = hud.gameObject.AddComponent<MatchPlayerIndicator>();
+            }
+
+            playerIndicator.Configure(mainCamera, match, dogfight);
+            EditorUtility.SetDirty(playerIndicator);
+        }
+
+        private static void ConfigurePresentationCamera()
+        {
+            FlightCameraTargetRig targetRig = FindComponentOnNamedObject<FlightCameraTargetRig>("Camera Target Rig");
+            if (targetRig != null)
+            {
+                SerializedObject serializedRig = new SerializedObject(targetRig);
+                SetFloat(serializedRig, "lookAheadDistance", PresentationLookAheadDistance);
+                SetFloat(serializedRig, "verticalLookOffset", PresentationVerticalLookOffset);
+                serializedRig.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(targetRig);
+            }
+
+            Camera mainCamera = FindComponentOnNamedObject<Camera>("Main Camera");
+            if (mainCamera != null)
+            {
+                mainCamera.fieldOfView = PresentationFieldOfView;
+                EditorUtility.SetDirty(mainCamera);
+            }
+
+            GameObject cinemachineObject = FindNamedObject("Cinemachine Follow Camera");
+            if (cinemachineObject == null)
+            {
+                return;
+            }
+
+            foreach (Component component in cinemachineObject.GetComponents<Component>())
+            {
+                if (component == null)
+                {
+                    continue;
+                }
+
+                string typeName = component.GetType().FullName ?? string.Empty;
+                if (typeName.EndsWith(".CinemachineFollow", StringComparison.Ordinal))
+                {
+                    SetMember(component, "FollowOffset", PresentationCameraOffset);
+                    EditorUtility.SetDirty(component);
+                }
+                else if (typeName.EndsWith(".CinemachineCamera", StringComparison.Ordinal))
+                {
+                    SetNestedMember(component, "Lens", "FieldOfView", PresentationFieldOfView);
+                    EditorUtility.SetDirty(component);
+                }
+            }
+        }
+
+        private static GameObject FindNamedObject(string objectName)
+        {
+            foreach (GameObject gameObject in UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsInactive.Exclude))
+            {
+                if (gameObject.name == objectName)
+                {
+                    return gameObject;
+                }
+            }
+
+            return null;
+        }
+
+        private static T FindComponentOnNamedObject<T>(string objectName) where T : Component
+        {
+            GameObject gameObject = FindNamedObject(objectName);
+            return gameObject != null ? gameObject.GetComponent<T>() : null;
         }
 
         private static Type FindType(string fullName)

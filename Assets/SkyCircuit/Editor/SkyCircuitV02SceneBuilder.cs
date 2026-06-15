@@ -24,9 +24,7 @@ namespace SkyCircuit.EditorTools
             EnsureFolders();
 
             Material playerMaterial = CreateMaterial("SC_PlayerPrototype.mat", new Color(0.12f, 0.78f, 1f), new Color(0.1f, 0.55f, 1f));
-            Material playerNoseMaterial = CreateMaterial("SC_PlayerNose.mat", new Color(1f, 0.92f, 0.18f), new Color(1f, 0.7f, 0.05f));
             Material aiMaterial = CreateMaterial("SC_AIPrototype.mat", new Color(1f, 0.28f, 0.24f), new Color(0.85f, 0.05f, 0.05f));
-            Material aiNoseMaterial = CreateMaterial("SC_AINose.mat", new Color(0.25f, 1f, 0.68f), new Color(0.08f, 0.75f, 0.38f));
             Material waterMaterial = CreateMaterial("SC_WaterPrototype.mat", new Color(0.02f, 0.34f, 0.55f, 0.72f), new Color(0.02f, 0.13f, 0.22f), true);
             Material routeLineMaterial = CreateMaterial("SC_RouteLine.mat", new Color(0.1f, 0.9f, 1f), new Color(0.1f, 0.9f, 1f));
             Material buoyIdleMaterial = CreateMaterial("SC_BuoyIdle.mat", new Color(0.18f, 0.45f, 1f), new Color(0.04f, 0.18f, 0.65f));
@@ -53,7 +51,6 @@ namespace SkyCircuit.EditorTools
                 true,
                 playerSpawn,
                 playerMaterial,
-                playerNoseMaterial,
                 true);
             CompetitorSetup ai = CreateCompetitor(
                 gameplayRoot.transform,
@@ -62,7 +59,6 @@ namespace SkyCircuit.EditorTools
                 false,
                 aiSpawn,
                 aiMaterial,
-                aiNoseMaterial,
                 false);
 
             Transform[] buoys = CreateBuoys(gameplayRoot.transform, buoyIdleMaterial, touchRangeMaterial);
@@ -93,6 +89,7 @@ namespace SkyCircuit.EditorTools
             CreateFolder("Assets/SkyCircuit", "Art");
             CreateFolder("Assets/SkyCircuit/Art", "Materials");
             CreateFolder("Assets", "Scenes");
+            SkyCircuitCharacterVisualSceneUtility.EnsureFolders();
         }
 
         private static void CreateFolder(string parent, string child)
@@ -189,7 +186,6 @@ namespace SkyCircuit.EditorTools
             bool isPlayer,
             Transform spawnPoint,
             Material bodyMaterial,
-            Material noseMaterial,
             bool addPlayerInput)
         {
             GameObject competitorObject = GameObject.CreatePrimitive(PrimitiveType.Capsule);
@@ -224,7 +220,8 @@ namespace SkyCircuit.EditorTools
             Competitor competitor = competitorObject.AddComponent<Competitor>();
             competitor.Configure(displayName, isPlayer, controller, spawnPoint);
 
-            CreateNoseMarker(competitorObject.transform, noseMaterial);
+            string visualName = isPlayer ? "Player Character Visual" : "AI Character Visual";
+            SkyCircuitCharacterVisualSceneUtility.EnsureCharacterVisual(competitorObject, visualName);
             CreateContrail(competitorObject.transform, controller);
             return new CompetitorSetup(competitorObject, controller, competitor);
         }
@@ -281,21 +278,11 @@ namespace SkyCircuit.EditorTools
             }
         }
 
-        private static void CreateNoseMarker(Transform parent, Material noseMaterial)
-        {
-            GameObject nose = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            nose.name = "Forward Marker";
-            nose.transform.SetParent(parent);
-            nose.transform.localPosition = new Vector3(0f, 0.25f, 0.85f);
-            nose.transform.localScale = new Vector3(0.35f, 0.35f, 0.35f);
-            nose.GetComponent<Renderer>().sharedMaterial = noseMaterial;
-        }
-
         private static void CreateContrail(Transform parent, SkyCircuitFlightController controller)
         {
             GameObject trailObject = new GameObject("Contrail");
             trailObject.transform.SetParent(parent);
-            trailObject.transform.localPosition = new Vector3(0f, -0.75f, -0.95f);
+            trailObject.transform.localPosition = new Vector3(0f, 0.25f, -2.3f);
             TrailRenderer trail = trailObject.AddComponent<TrailRenderer>();
             trail.alignment = LineAlignment.View;
             trail.autodestruct = false;

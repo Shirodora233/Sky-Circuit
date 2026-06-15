@@ -46,6 +46,9 @@ namespace SkyCircuit.EditorTools
                 return;
             }
 
+            SkyCircuitCharacterVisualSceneUtility.EnsureCharacterVisual(player.gameObject, "Player Character Visual");
+            SkyCircuitCharacterVisualSceneUtility.EnsureCharacterVisual(opponent.gameObject, "AI Character Visual");
+
             player.SetProfile(profiles.AllRounder, true);
             opponent.SetProfile(profiles.Speeder, true);
 

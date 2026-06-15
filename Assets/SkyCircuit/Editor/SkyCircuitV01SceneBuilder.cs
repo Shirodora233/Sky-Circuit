@@ -34,7 +34,6 @@ namespace SkyCircuit.EditorTools
             EnsureFolders();
 
             Material playerMaterial = CreateMaterial("SC_PlayerPrototype.mat", new Color(0.12f, 0.78f, 1f), new Color(0.1f, 0.55f, 1f));
-            Material noseMaterial = CreateMaterial("SC_PlayerNose.mat", new Color(1f, 0.92f, 0.18f), new Color(1f, 0.7f, 0.05f));
             Material waterMaterial = CreateMaterial("SC_WaterPrototype.mat", new Color(0.02f, 0.34f, 0.55f, 0.72f), new Color(0.02f, 0.13f, 0.22f), true);
             Material routeLineMaterial = CreateMaterial("SC_RouteLine.mat", new Color(0.1f, 0.9f, 1f), new Color(0.1f, 0.9f, 1f));
             Material buoyIdleMaterial = CreateMaterial("SC_BuoyIdle.mat", new Color(0.18f, 0.45f, 1f), new Color(0.04f, 0.18f, 0.65f));
@@ -52,7 +51,7 @@ namespace SkyCircuit.EditorTools
             CreateWater(environmentRoot.transform, waterMaterial);
 
             Transform spawnPoint = CreateSpawnPoint(gameplayRoot.transform);
-            GameObject player = CreatePlayer(gameplayRoot.transform, spawnPoint, playerMaterial, noseMaterial);
+            GameObject player = CreatePlayer(gameplayRoot.transform, spawnPoint, playerMaterial);
             SkyCircuitFlightController flightController = player.GetComponent<SkyCircuitFlightController>();
             FlightCameraTargetRig cameraTargetRig = CreateCameraTargetRig(gameplayRoot.transform, player.transform, flightController);
 
@@ -115,6 +114,7 @@ namespace SkyCircuit.EditorTools
             CreateFolder("Assets/SkyCircuit", "Art");
             CreateFolder("Assets/SkyCircuit/Art", "Materials");
             CreateFolder("Assets", "Scenes");
+            SkyCircuitCharacterVisualSceneUtility.EnsureFolders();
         }
 
         private static void CreateFolder(string parent, string child)
@@ -204,7 +204,7 @@ namespace SkyCircuit.EditorTools
             return spawn.transform;
         }
 
-        private static GameObject CreatePlayer(Transform parent, Transform spawnPoint, Material playerMaterial, Material noseMaterial)
+        private static GameObject CreatePlayer(Transform parent, Transform spawnPoint, Material playerMaterial)
         {
             GameObject player = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             player.name = "Player Prototype";
@@ -226,16 +226,11 @@ namespace SkyCircuit.EditorTools
             FlightResetVolume reset = player.AddComponent<FlightResetVolume>();
             reset.Configure(controller, spawnPoint);
 
-            GameObject nose = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            nose.name = "Forward Marker";
-            nose.transform.SetParent(player.transform);
-            nose.transform.localPosition = new Vector3(0f, 0.25f, 0.85f);
-            nose.transform.localScale = new Vector3(0.35f, 0.35f, 0.35f);
-            nose.GetComponent<Renderer>().sharedMaterial = noseMaterial;
+            SkyCircuitCharacterVisualSceneUtility.EnsureCharacterVisual(player, "Player Character Visual");
 
             GameObject trailObject = new GameObject("Contrail");
             trailObject.transform.SetParent(player.transform);
-            trailObject.transform.localPosition = new Vector3(0f, -0.75f, -0.95f);
+            trailObject.transform.localPosition = new Vector3(0f, 0.25f, -2.3f);
             TrailRenderer trail = trailObject.AddComponent<TrailRenderer>();
             trail.alignment = LineAlignment.View;
             trail.autodestruct = false;

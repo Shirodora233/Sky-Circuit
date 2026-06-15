@@ -46,6 +46,9 @@ namespace SkyCircuit.EditorTools
                 return;
             }
 
+            SkyCircuitCharacterVisualSceneUtility.EnsureCharacterVisual(player.gameObject, "Player Character Visual");
+            SkyCircuitCharacterVisualSceneUtility.EnsureCharacterVisual(opponent.gameObject, "AI Character Visual");
+
             BackHitFeedback playerFeedback = CreateBackHitFeedback(player.Body, pointFieldMaterial);
             BackHitFeedback opponentFeedback = CreateBackHitFeedback(opponent.Body, pointFieldMaterial);
 
