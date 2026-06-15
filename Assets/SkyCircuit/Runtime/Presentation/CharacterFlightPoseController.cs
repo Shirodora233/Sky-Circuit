@@ -43,6 +43,12 @@ namespace SkyCircuit.Presentation
         [SerializeField] private float leftLowerLegBackAngle = 6f;
         [SerializeField] private float rightLowerLegBackAngle = 6f;
 
+        [Header("Turn Leg Pose")]
+        [SerializeField] private float turnUpperLegForwardAngle = 12f;
+        [SerializeField] private float turnLowerLegBackAngle = 18f;
+        [SerializeField, Min(0.01f)] private float turnLegPoseSmoothing = 7f;
+        [SerializeField, Range(-1f, 1f)] private float editModeTurnPreview = 0f;
+
         [Header("Hand Pose")]
         [SerializeField] private bool openHands = false;
         [SerializeField, Range(0f, 1f)] private float handOpenWeight = 1f;
@@ -64,6 +70,7 @@ namespace SkyCircuit.Presentation
         [Header("Runtime Status")]
         [SerializeField] private float effectivePoseWeight;
         [SerializeField] private float effectiveDashPoseWeight;
+        [SerializeField] private float effectiveTurnLegPose;
         [SerializeField] private string status = "Not started";
 
         private Transform leftUpperArm;
@@ -80,6 +87,7 @@ namespace SkyCircuit.Presentation
         private Transform[] rightFingerBones = new Transform[0];
         private float smoothedWeight;
         private float dashPoseBlend;
+        private float smoothedTurnLegPose;
         private bool editModePoseCaptured;
         private Quaternion leftUpperArmEditLocalRotation;
         private Quaternion rightUpperArmEditLocalRotation;
@@ -112,6 +120,7 @@ namespace SkyCircuit.Presentation
             CacheBones();
             smoothedWeight = 0f;
             dashPoseBlend = 0f;
+            smoothedTurnLegPose = 0f;
             if (!Application.isPlaying)
             {
                 CaptureEditModePose();
@@ -158,12 +167,13 @@ namespace SkyCircuit.Presentation
 
             float dt = Mathf.Max(Time.deltaTime, 0.0001f);
             UpdateDashPose(dt);
+            UpdateTurnLegPose(dt);
             float targetWeight = BuildPoseWeight();
             smoothedWeight = Mathf.Lerp(smoothedWeight, targetWeight, DampBlend(poseSmoothing, dt));
             effectivePoseWeight = smoothedWeight;
             status = HasAllPoseBones() ? "Running" : "Missing pose bones";
             ApplyArmPose(smoothedWeight);
-            ApplyLegPose(smoothedWeight);
+            ApplyLegPose(smoothedWeight, smoothedTurnLegPose);
             ApplyHandPose(smoothedWeight);
         }
 
@@ -190,6 +200,7 @@ namespace SkyCircuit.Presentation
                 RestoreEditModePose();
                 effectivePoseWeight = 0f;
                 effectiveDashPoseWeight = 0f;
+                effectiveTurnLegPose = 0f;
                 status = "Edit preview disabled";
                 return;
             }
@@ -213,9 +224,10 @@ namespace SkyCircuit.Presentation
 
             effectivePoseWeight = editModePreviewWeight;
             effectiveDashPoseWeight = editModeDashPreviewWeight;
+            effectiveTurnLegPose = editModeTurnPreview;
             status = HasAllPoseBones() ? BuildEditPreviewStatus() : "Missing pose bones";
             ApplyArmPose(effectivePoseWeight);
-            ApplyLegPose(effectivePoseWeight);
+            ApplyLegPose(effectivePoseWeight, effectiveTurnLegPose);
             ApplyHandPose(effectivePoseWeight);
         }
 
@@ -432,6 +444,13 @@ namespace SkyCircuit.Presentation
             effectiveDashPoseWeight = Mathf.SmoothStep(0f, 1f, dashPoseBlend);
         }
 
+        private void UpdateTurnLegPose(float dt)
+        {
+            float target = controller != null ? controller.TurnPoseInput : 0f;
+            smoothedTurnLegPose = Mathf.Lerp(smoothedTurnLegPose, target, DampBlend(turnLegPoseSmoothing, dt));
+            effectiveTurnLegPose = smoothedTurnLegPose;
+        }
+
         private void ApplyArmPose(float weight)
         {
             if (weight <= 0.001f)
@@ -455,24 +474,32 @@ namespace SkyCircuit.Presentation
             ApplyMirroredArmPose(rightLowerArm, 1f, bodyRight, bodyForward, lowerBack, lowerOpen, rightForearmExtraEuler, weight);
         }
 
-        private void ApplyLegPose(float weight)
+        private void ApplyLegPose(float weight, float turnPose)
         {
             if (weight <= 0.001f ||
                 (Mathf.Abs(leftUpperLegForwardAngle) <= 0.001f &&
                  Mathf.Abs(rightUpperLegForwardAngle) <= 0.001f &&
                  Mathf.Abs(leftLowerLegBackAngle) <= 0.001f &&
-                 Mathf.Abs(rightLowerLegBackAngle) <= 0.001f))
+                 Mathf.Abs(rightLowerLegBackAngle) <= 0.001f &&
+                 Mathf.Abs(turnUpperLegForwardAngle) <= 0.001f &&
+                 Mathf.Abs(turnLowerLegBackAngle) <= 0.001f))
             {
                 return;
             }
 
             Quaternion bodyRotation = sourceBody != null ? sourceBody.rotation : transform.rotation;
             Vector3 bodyRight = bodyRotation * Vector3.right;
+            float leftTurn = Mathf.Clamp01(-turnPose);
+            float rightTurn = Mathf.Clamp01(turnPose);
+            float leftUpperForward = leftUpperLegForwardAngle + turnUpperLegForwardAngle * leftTurn;
+            float rightUpperForward = rightUpperLegForwardAngle + turnUpperLegForwardAngle * rightTurn;
+            float leftLowerBack = leftLowerLegBackAngle + turnLowerLegBackAngle * leftTurn;
+            float rightLowerBack = rightLowerLegBackAngle + turnLowerLegBackAngle * rightTurn;
 
-            ApplyLegBonePose(leftUpperLeg, bodyRight, -leftUpperLegForwardAngle * weight);
-            ApplyLegBonePose(rightUpperLeg, bodyRight, -rightUpperLegForwardAngle * weight);
-            ApplyLegBonePose(leftLowerLeg, bodyRight, leftLowerLegBackAngle * weight);
-            ApplyLegBonePose(rightLowerLeg, bodyRight, rightLowerLegBackAngle * weight);
+            ApplyLegBonePose(leftUpperLeg, bodyRight, -leftUpperForward * weight);
+            ApplyLegBonePose(rightUpperLeg, bodyRight, -rightUpperForward * weight);
+            ApplyLegBonePose(leftLowerLeg, bodyRight, leftLowerBack * weight);
+            ApplyLegBonePose(rightLowerLeg, bodyRight, rightLowerBack * weight);
         }
 
         private void ApplyHandPose(float weight)

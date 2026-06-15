@@ -183,6 +183,8 @@ namespace SkyCircuit.Profiles
         [Range(1f, 89f)] public float maxPitch;
         [Range(0f, 89f)] public float maxBank;
         [Min(0f)] public float rotationSharpness;
+        [Min(0f)] public float bankEnterSharpness;
+        [Min(0f)] public float bankReturnSharpness;
         [Min(0f)] public float externalImpulseDecay;
 
         public static FlightSteeringSettings Speeder()
@@ -195,6 +197,8 @@ namespace SkyCircuit.Profiles
                 maxPitch = 50f,
                 maxBank = 38f,
                 rotationSharpness = 18f,
+                bankEnterSharpness = 5.5f,
+                bankReturnSharpness = 2.8f,
                 externalImpulseDecay = 3.6f,
             };
         }
@@ -209,6 +213,8 @@ namespace SkyCircuit.Profiles
                 maxPitch = 66f,
                 maxBank = 58f,
                 rotationSharpness = 38f,
+                bankEnterSharpness = 8f,
+                bankReturnSharpness = 4.2f,
                 externalImpulseDecay = 5.2f,
             };
         }
@@ -223,6 +229,8 @@ namespace SkyCircuit.Profiles
                 maxPitch = 58f,
                 maxBank = 46f,
                 rotationSharpness = 26f,
+                bankEnterSharpness = 6.5f,
+                bankReturnSharpness = 3.2f,
                 externalImpulseDecay = 4f,
             };
         }
@@ -235,6 +243,8 @@ namespace SkyCircuit.Profiles
             maxPitch = Mathf.Clamp(maxPitch, 1f, 89f);
             maxBank = Mathf.Clamp(maxBank, 0f, 89f);
             rotationSharpness = Mathf.Max(0f, rotationSharpness);
+            bankEnterSharpness = Mathf.Max(0.01f, bankEnterSharpness);
+            bankReturnSharpness = Mathf.Max(0.01f, bankReturnSharpness);
             externalImpulseDecay = Mathf.Max(0f, externalImpulseDecay);
             return this;
         }

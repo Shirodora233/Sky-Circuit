@@ -235,6 +235,8 @@ namespace SkyCircuit.EditorTools
             SetFloat(serializedController, "maxPitch", 58f);
             SetFloat(serializedController, "maxBank", 46f);
             SetFloat(serializedController, "rotationSharpness", 26f);
+            SetFloat(serializedController, "bankEnterSharpness", 6.5f);
+            SetFloat(serializedController, "bankReturnSharpness", 3.2f);
 
             SerializedProperty speedModule = serializedController.FindProperty("speedModule");
             if (speedModule != null)

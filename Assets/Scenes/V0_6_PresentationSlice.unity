@@ -2770,6 +2770,8 @@ MonoBehaviour:
   maxPitch: 58
   maxBank: 46
   rotationSharpness: 26
+  bankEnterSharpness: 6.5
+  bankReturnSharpness: 3.2
   movementVerticalOffsetDegrees: 0
   externalImpulseDecay: 4
 --- !u!114 &851752478
@@ -2851,6 +2853,10 @@ MonoBehaviour:
   rightUpperLegForwardAngle: 14.68
   leftLowerLegBackAngle: 34.41
   rightLowerLegBackAngle: 23.23
+  turnUpperLegForwardAngle: 12
+  turnLowerLegBackAngle: 18
+  turnLegPoseSmoothing: 7
+  editModeTurnPreview: 0
   openHands: 0
   handOpenWeight: 1
   fingerOpenEuler: {x: -3, y: -58.5, z: -100.7}
@@ -3209,6 +3215,10 @@ MonoBehaviour:
   rightUpperLegForwardAngle: 14.68
   leftLowerLegBackAngle: 34.41
   rightLowerLegBackAngle: 23.23
+  turnUpperLegForwardAngle: 12
+  turnLowerLegBackAngle: 18
+  turnLegPoseSmoothing: 7
+  editModeTurnPreview: 0
   openHands: 0
   handOpenWeight: 1
   fingerOpenEuler: {x: -18, y: 0, z: 0}
@@ -3305,6 +3315,8 @@ MonoBehaviour:
   maxPitch: 58
   maxBank: 46
   rotationSharpness: 26
+  bankEnterSharpness: 6.5
+  bankReturnSharpness: 3.2
   movementVerticalOffsetDegrees: 0
   externalImpulseDecay: 4
 --- !u!54 &921400795

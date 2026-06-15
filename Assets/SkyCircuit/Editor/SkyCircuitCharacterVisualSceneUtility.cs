@@ -156,6 +156,10 @@ namespace SkyCircuit.EditorTools
             SetFloat(serializedPose, "rightUpperLegForwardAngle", 14.68f);
             SetFloat(serializedPose, "leftLowerLegBackAngle", 34.41f);
             SetFloat(serializedPose, "rightLowerLegBackAngle", 23.23f);
+            SetFloat(serializedPose, "turnUpperLegForwardAngle", 12f);
+            SetFloat(serializedPose, "turnLowerLegBackAngle", 18f);
+            SetFloat(serializedPose, "turnLegPoseSmoothing", 7f);
+            SetFloat(serializedPose, "editModeTurnPreview", 0f);
             SetBool(serializedPose, "openHands", false);
             SetFloat(serializedPose, "handOpenWeight", 1f);
             SetVector3(serializedPose, "fingerOpenEuler", new Vector3(-18f, 0f, 0f));

@@ -38,6 +38,8 @@ MonoBehaviour:
     maxPitch: 58
     maxBank: 46
     rotationSharpness: 26
+    bankEnterSharpness: 6.5
+    bankReturnSharpness: 3.2
     externalImpulseDecay: 4
   dashSkill:
     maxCharge: 100
