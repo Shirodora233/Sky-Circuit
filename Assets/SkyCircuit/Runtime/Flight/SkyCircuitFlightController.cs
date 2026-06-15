@@ -15,12 +15,7 @@ namespace SkyCircuit.Flight
         [SerializeField] private float mousePitchSensitivity = 0.18f;
         [SerializeField] private float keyboardYawRate = 115f;
         [SerializeField] private float maxPitch = 58f;
-        [SerializeField] private float maxBank = 46f;
         [SerializeField] private float rotationSharpness = 26f;
-        [Min(0.01f)]
-        [SerializeField] private float bankEnterSharpness = 6.5f;
-        [Min(0.01f)]
-        [SerializeField] private float bankReturnSharpness = 3.2f;
         [Tooltip("Manual pitch offset for velocity only. It does not rotate the body or character visual.")]
         [Range(-45f, 45f)]
         [SerializeField] private float movementVerticalOffsetDegrees = 0f;
@@ -32,7 +27,7 @@ namespace SkyCircuit.Flight
         private FlightInputState input;
         private Vector3 externalVelocity;
         private float latestLookBank;
-        private float currentBank;
+        private float signedTurnRate;
         private float yaw;
         private float pitch;
 
@@ -48,7 +43,8 @@ namespace SkyCircuit.Flight
         public bool IsDashing => dashSkillModule != null && dashSkillModule.IsDashing;
         public CompetitorProfile Profile => profile;
         public Quaternion ControlRotation => Quaternion.Euler(pitch, yaw, 0f);
-        public float TurnPoseInput => maxBank > 0.001f ? Mathf.Clamp(-currentBank / maxBank, -1f, 1f) : 0f;
+        public float TurnPoseInput => Mathf.Clamp(input.Turn + latestLookBank, -1f, 1f);
+        public float SignedTurnRate => signedTurnRate;
 
         private void Awake()
         {
@@ -60,7 +56,6 @@ namespace SkyCircuit.Flight
             var angles = transform.eulerAngles;
             yaw = angles.y;
             pitch = NormalizeAngle(angles.x);
-            currentBank = NormalizeAngle(angles.z);
             EnsureSpeedModule();
             EnsureDashSkillModule();
             ApplyProfile(profile, true);
@@ -131,8 +126,8 @@ namespace SkyCircuit.Flight
             var angles = rotation.eulerAngles;
             yaw = angles.y;
             pitch = NormalizeAngle(angles.x);
-            currentBank = NormalizeAngle(angles.z);
             latestLookBank = 0f;
+            signedTurnRate = 0f;
             EnsureSpeedModule();
             EnsureDashSkillModule();
             ApplyProfile(profile, false);
@@ -146,10 +141,7 @@ namespace SkyCircuit.Flight
             mousePitchSensitivity = settings.mousePitchSensitivity;
             keyboardYawRate = settings.keyboardYawRate;
             maxPitch = settings.maxPitch;
-            maxBank = settings.maxBank;
             rotationSharpness = settings.rotationSharpness;
-            bankEnterSharpness = settings.bankEnterSharpness;
-            bankReturnSharpness = settings.bankReturnSharpness;
             externalImpulseDecay = settings.externalImpulseDecay;
         }
 
@@ -165,19 +157,13 @@ namespace SkyCircuit.Flight
 
         private float UpdateRotation(float dt)
         {
-            float bankInput = Mathf.Clamp(input.Turn + latestLookBank, -1f, 1f);
-            float targetBank = -bankInput * maxBank;
-            float bankSharpness = Mathf.Abs(targetBank) > Mathf.Abs(currentBank)
-                ? bankEnterSharpness
-                : bankReturnSharpness;
-            currentBank = Mathf.Lerp(currentBank, targetBank, DampBlend(bankSharpness, dt));
-
             Quaternion currentRotation = body.rotation;
-            Quaternion targetRotation = Quaternion.Euler(pitch, yaw, currentBank);
+            Quaternion targetRotation = Quaternion.Euler(pitch, yaw, 0f);
             float blend = DampBlend(rotationSharpness, dt);
             Quaternion nextRotation = Quaternion.Slerp(currentRotation, targetRotation, blend);
             body.MoveRotation(nextRotation);
 
+            signedTurnRate = dt > 0f ? Mathf.DeltaAngle(currentRotation.eulerAngles.y, nextRotation.eulerAngles.y) / dt : 0f;
             return dt > 0f ? Quaternion.Angle(currentRotation, nextRotation) / dt : 0f;
         }
 

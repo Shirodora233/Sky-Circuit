@@ -324,8 +324,14 @@ namespace SkyCircuit.EditorTools
             SetFloat(serializedPose, "rightLowerLegBackAngle", 23.23f);
             SetFloat(serializedPose, "turnUpperLegForwardAngle", 12f);
             SetFloat(serializedPose, "turnLowerLegBackAngle", 18f);
+            SetFloat(serializedPose, "turnLegFullRate", 70f);
+            SetFloat(serializedPose, "turnLegInputGain", 1.35f);
+            SetFloat(serializedPose, "turnLegInputResponse", 0.7f);
+            SetFloat(serializedPose, "turnLegDeadZone", 2f);
             SetFloat(serializedPose, "turnLegPoseSmoothing", 7f);
-            SetFloat(serializedPose, "editModeTurnPreview", 0f);
+            SetFloat(serializedPose, "visualBankAngle", 42f);
+            SetFloat(serializedPose, "visualBankEnterSharpness", 3f);
+            SetFloat(serializedPose, "visualBankReturnSharpness", 1.2f);
             SetBool(serializedPose, "openHands", false);
             SetFloat(serializedPose, "handOpenWeight", 1f);
             SetVector3(serializedPose, "fingerOpenEuler", new Vector3(-18f, 0f, 0f));
@@ -341,6 +347,7 @@ namespace SkyCircuit.EditorTools
             SetFloat(serializedPose, "editModeBaseClipTime", 0f);
             SetFloat(serializedPose, "editModePreviewWeight", 1f);
             SetFloat(serializedPose, "editModeDashPreviewWeight", 0f);
+            SetFloat(serializedPose, "editModeTurnAmount", 0f);
             serializedPose.ApplyModifiedPropertiesWithoutUndo();
         }
 

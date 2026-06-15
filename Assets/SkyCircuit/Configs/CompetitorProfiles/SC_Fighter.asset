@@ -36,10 +36,7 @@ MonoBehaviour:
     mousePitchSensitivity: 0.21
     keyboardYawRate: 150
     maxPitch: 66
-    maxBank: 58
     rotationSharpness: 38
-    bankEnterSharpness: 8
-    bankReturnSharpness: 4.2
     externalImpulseDecay: 5.2
   dashSkill:
     maxCharge: 100

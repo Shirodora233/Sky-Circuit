@@ -83,6 +83,13 @@ Desktop.ini
 .cache/
 .sass-cache/
 .eslintcache
+/.uv-cache/
+
+# Local DCC/Blender work products kept outside Unity Assets
+/DCC/Blender/cache/
+/DCC/Blender/renders/
+/DCC/Blender/scenes/*.blend
+/DCC/Blender/scenes/*.blend1
 
 # Coplay local package data
 /Packages/Coplay/

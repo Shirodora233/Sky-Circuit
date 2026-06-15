@@ -28,6 +28,9 @@ namespace SkyCircuit.Presentation
         [SerializeField, Min(0f)] private float editModeBaseClipTime = 0f;
         [SerializeField, Range(0f, 1f)] private float editModePreviewWeight = 1f;
         [SerializeField, Range(0f, 1f)] private float editModeDashPreviewWeight = 0f;
+        [FormerlySerializedAs("editModeTurnPreview")]
+        [Tooltip("Scene preview for all turn-driven pose layers. -1 previews left turn, 1 previews right turn.")]
+        [SerializeField, Range(-1f, 1f)] private float editModeTurnAmount = 0f;
 
         [Header("Arm Pose")]
         [SerializeField] private float upperArmBackAngle = 34f;
@@ -46,8 +49,16 @@ namespace SkyCircuit.Presentation
         [Header("Turn Leg Pose")]
         [SerializeField] private float turnUpperLegForwardAngle = 12f;
         [SerializeField] private float turnLowerLegBackAngle = 18f;
+        [SerializeField, Min(1f)] private float turnLegFullRate = 70f;
+        [SerializeField, Min(0f)] private float turnLegInputGain = 1.35f;
+        [SerializeField, Range(0.25f, 2f)] private float turnLegInputResponse = 0.7f;
+        [SerializeField, Min(0f)] private float turnLegDeadZone = 2f;
         [SerializeField, Min(0.01f)] private float turnLegPoseSmoothing = 7f;
-        [SerializeField, Range(-1f, 1f)] private float editModeTurnPreview = 0f;
+
+        [Header("Visual Bank Pose")]
+        [SerializeField] private float visualBankAngle = 42f;
+        [SerializeField, Min(0.01f)] private float visualBankEnterSharpness = 3f;
+        [SerializeField, Min(0.01f)] private float visualBankReturnSharpness = 1.2f;
 
         [Header("Hand Pose")]
         [SerializeField] private bool openHands = false;
@@ -70,9 +81,12 @@ namespace SkyCircuit.Presentation
         [Header("Runtime Status")]
         [SerializeField] private float effectivePoseWeight;
         [SerializeField] private float effectiveDashPoseWeight;
+        [SerializeField] private float effectiveTurnRate;
         [SerializeField] private float effectiveTurnLegPose;
+        [SerializeField] private float effectiveVisualBank;
         [SerializeField] private string status = "Not started";
 
+        private Transform visualRoot;
         private Transform leftUpperArm;
         private Transform rightUpperArm;
         private Transform leftLowerArm;
@@ -88,7 +102,10 @@ namespace SkyCircuit.Presentation
         private float smoothedWeight;
         private float dashPoseBlend;
         private float smoothedTurnLegPose;
+        private float smoothedVisualBank;
+        private bool visualBaseCaptured;
         private bool editModePoseCaptured;
+        private Quaternion visualBaseLocalRotation;
         private Quaternion leftUpperArmEditLocalRotation;
         private Quaternion rightUpperArmEditLocalRotation;
         private Quaternion leftLowerArmEditLocalRotation;
@@ -121,6 +138,9 @@ namespace SkyCircuit.Presentation
             smoothedWeight = 0f;
             dashPoseBlend = 0f;
             smoothedTurnLegPose = 0f;
+            smoothedVisualBank = 0f;
+            visualBaseCaptured = false;
+            CaptureVisualBaseRotation();
             if (!Application.isPlaying)
             {
                 CaptureEditModePose();
@@ -129,6 +149,7 @@ namespace SkyCircuit.Presentation
 
         private void OnDisable()
         {
+            RestoreVisualBaseRotation();
             if (!Application.isPlaying)
             {
                 RestoreEditModePose();
@@ -166,8 +187,10 @@ namespace SkyCircuit.Presentation
             }
 
             float dt = Mathf.Max(Time.deltaTime, 0.0001f);
+            RestoreVisualBaseRotation();
             UpdateDashPose(dt);
             UpdateTurnLegPose(dt);
+            UpdateVisualBankPose(dt);
             float targetWeight = BuildPoseWeight();
             smoothedWeight = Mathf.Lerp(smoothedWeight, targetWeight, DampBlend(poseSmoothing, dt));
             effectivePoseWeight = smoothedWeight;
@@ -175,6 +198,7 @@ namespace SkyCircuit.Presentation
             ApplyArmPose(smoothedWeight);
             ApplyLegPose(smoothedWeight, smoothedTurnLegPose);
             ApplyHandPose(smoothedWeight);
+            ApplyVisualBankPose(smoothedVisualBank);
         }
 
         [ContextMenu("Recapture Edit Mode Pose")]
@@ -200,7 +224,9 @@ namespace SkyCircuit.Presentation
                 RestoreEditModePose();
                 effectivePoseWeight = 0f;
                 effectiveDashPoseWeight = 0f;
+                effectiveTurnRate = 0f;
                 effectiveTurnLegPose = 0f;
+                effectiveVisualBank = 0f;
                 status = "Edit preview disabled";
                 return;
             }
@@ -221,14 +247,18 @@ namespace SkyCircuit.Presentation
             CaptureEditModePose();
             RestoreEditModePose();
             SampleEditModeBaseClip();
+            CaptureVisualBaseRotation(true);
 
             effectivePoseWeight = editModePreviewWeight;
             effectiveDashPoseWeight = editModeDashPreviewWeight;
-            effectiveTurnLegPose = editModeTurnPreview;
+            effectiveTurnRate = editModeTurnAmount * turnLegFullRate;
+            effectiveTurnLegPose = editModeTurnAmount;
+            effectiveVisualBank = -editModeTurnAmount * visualBankAngle;
             status = HasAllPoseBones() ? BuildEditPreviewStatus() : "Missing pose bones";
             ApplyArmPose(effectivePoseWeight);
             ApplyLegPose(effectivePoseWeight, effectiveTurnLegPose);
             ApplyHandPose(effectivePoseWeight);
+            ApplyVisualBankPose(effectiveVisualBank);
         }
 
         private void ResolveReferences()
@@ -246,6 +276,11 @@ namespace SkyCircuit.Presentation
             if (animator == null)
             {
                 animator = GetComponentInChildren<Animator>();
+            }
+
+            if (animator != null)
+            {
+                visualRoot = animator.transform;
             }
         }
 
@@ -322,6 +357,7 @@ namespace SkyCircuit.Presentation
                 return;
             }
 
+            CaptureVisualBaseRotation(true);
             leftUpperArmEditLocalRotation = leftUpperArm.localRotation;
             rightUpperArmEditLocalRotation = rightUpperArm.localRotation;
             leftLowerArmEditLocalRotation = leftLowerArm.localRotation;
@@ -344,6 +380,7 @@ namespace SkyCircuit.Presentation
                 return;
             }
 
+            RestoreVisualBaseRotation();
             leftUpperArm.localRotation = leftUpperArmEditLocalRotation;
             rightUpperArm.localRotation = rightUpperArmEditLocalRotation;
             leftLowerArm.localRotation = leftLowerArmEditLocalRotation;
@@ -378,6 +415,35 @@ namespace SkyCircuit.Presentation
                 {
                     bones[i].localRotation = rotations[i];
                 }
+            }
+        }
+
+        private void CaptureVisualBaseRotation(bool force = false)
+        {
+            if (visualRoot == null && animator != null)
+            {
+                visualRoot = animator.transform;
+            }
+
+            if (visualRoot == null || (visualBaseCaptured && !force))
+            {
+                return;
+            }
+
+            visualBaseLocalRotation = visualRoot.localRotation;
+            visualBaseCaptured = true;
+        }
+
+        private void RestoreVisualBaseRotation()
+        {
+            if (visualRoot == null && animator != null)
+            {
+                visualRoot = animator.transform;
+            }
+
+            if (visualRoot != null && visualBaseCaptured)
+            {
+                visualRoot.localRotation = visualBaseLocalRotation;
             }
         }
 
@@ -446,9 +512,37 @@ namespace SkyCircuit.Presentation
 
         private void UpdateTurnLegPose(float dt)
         {
-            float target = controller != null ? controller.TurnPoseInput : 0f;
+            float target = BuildActualTurnPoseInput();
             smoothedTurnLegPose = Mathf.Lerp(smoothedTurnLegPose, target, DampBlend(turnLegPoseSmoothing, dt));
             effectiveTurnLegPose = smoothedTurnLegPose;
+        }
+
+        private void UpdateVisualBankPose(float dt)
+        {
+            float turnInput = BuildActualTurnPoseInput();
+            float targetBank = -turnInput * visualBankAngle;
+            float sharpness = Mathf.Abs(targetBank) > Mathf.Abs(smoothedVisualBank)
+                ? visualBankEnterSharpness
+                : visualBankReturnSharpness;
+
+            smoothedVisualBank = Mathf.Lerp(smoothedVisualBank, targetBank, DampBlend(sharpness, dt));
+            effectiveVisualBank = smoothedVisualBank;
+        }
+
+        private float BuildActualTurnPoseInput()
+        {
+            if (controller == null)
+            {
+                effectiveTurnRate = 0f;
+                return 0f;
+            }
+
+            effectiveTurnRate = controller.SignedTurnRate;
+            float sign = Mathf.Sign(effectiveTurnRate);
+            float rate = Mathf.Max(0f, Mathf.Abs(effectiveTurnRate) - turnLegDeadZone);
+            float normalizedRate = Mathf.Clamp01(rate / Mathf.Max(1f, turnLegFullRate));
+            float shapedRate = Mathf.Pow(normalizedRate, turnLegInputResponse);
+            return sign * Mathf.Clamp01(shapedRate * turnLegInputGain);
         }
 
         private void ApplyArmPose(float weight)
@@ -514,6 +608,22 @@ namespace SkyCircuit.Presentation
             ApplyLocalFingerPose(rightThumbBones, thumbOpenEuler * blend);
             ApplyLocalFingerPose(leftFingerBones, fingerOpenEuler * blend);
             ApplyLocalFingerPose(rightFingerBones, fingerOpenEuler * blend);
+        }
+
+        private void ApplyVisualBankPose(float bankAngle)
+        {
+            if (visualRoot == null && animator != null)
+            {
+                visualRoot = animator.transform;
+            }
+
+            if (visualRoot == null)
+            {
+                return;
+            }
+
+            CaptureVisualBaseRotation();
+            visualRoot.localRotation = visualBaseLocalRotation * Quaternion.Euler(0f, 0f, bankAngle);
         }
 
         private static void ApplyLocalFingerPose(Transform[] bones, Vector3 euler)

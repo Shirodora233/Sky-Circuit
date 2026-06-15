@@ -1769,10 +1769,7 @@ MonoBehaviour:
   mousePitchSensitivity: 0.18
   keyboardYawRate: 115
   maxPitch: 58
-  maxBank: 46
   rotationSharpness: 26
-  bankEnterSharpness: 6.5
-  bankReturnSharpness: 3.2
   externalImpulseDecay: 4
 --- !u!114 &851752478
 MonoBehaviour:
@@ -2275,10 +2272,7 @@ MonoBehaviour:
   mousePitchSensitivity: 0.18
   keyboardYawRate: 115
   maxPitch: 58
-  maxBank: 46
   rotationSharpness: 26
-  bankEnterSharpness: 6.5
-  bankReturnSharpness: 3.2
   externalImpulseDecay: 4
 --- !u!54 &921400795
 Rigidbody:
