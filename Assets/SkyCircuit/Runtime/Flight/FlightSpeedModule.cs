@@ -120,7 +120,7 @@ namespace SkyCircuit.Flight
                 return;
             }
 
-            Vector3 forward = context.BodyRotation * Vector3.forward;
+            Vector3 forward = context.MovementRotation * Vector3.forward;
             float verticalVelocity = forward.y * currentSpeed + input.Vertical * verticalAssistSpeed;
             float climbDelta = verticalVelocity * dt;
             if (Mathf.Abs(climbDelta) < 0.0001f)
@@ -189,7 +189,7 @@ namespace SkyCircuit.Flight
             currentSpeed = Mathf.Clamp(currentSpeed, minSpeed, absoluteMaxSpeed);
             IsBoosting = input.Boost || currentSpeed > poweredMaxSpeed + 1f;
 
-            Vector3 forwardVelocity = context.BodyRotation * Vector3.forward * currentSpeed;
+            Vector3 forwardVelocity = context.MovementRotation * Vector3.forward * currentSpeed;
             Vector3 verticalAssist = Vector3.up * (input.Vertical * verticalAssistSpeed);
             Vector3 targetVelocity = forwardVelocity + verticalAssist;
             return new FlightSpeedOutput(currentSpeed, targetVelocity, IsBoosting);
@@ -204,7 +204,7 @@ namespace SkyCircuit.Flight
 
         private float EstimateVerticalVelocity(FlightSpeedInput input, FlightSpeedContext context)
         {
-            Vector3 forward = context.BodyRotation * Vector3.forward;
+            Vector3 forward = context.MovementRotation * Vector3.forward;
             return forward.y * currentSpeed + input.Vertical * verticalAssistSpeed;
         }
     }
@@ -229,12 +229,23 @@ namespace SkyCircuit.Flight
     {
         public readonly float DeltaTime;
         public readonly Quaternion BodyRotation;
+        public readonly Quaternion MovementRotation;
         public readonly Vector3 CurrentVelocity;
 
         public FlightSpeedContext(float deltaTime, Quaternion bodyRotation, Vector3 currentVelocity)
+            : this(deltaTime, bodyRotation, bodyRotation, currentVelocity)
+        {
+        }
+
+        public FlightSpeedContext(
+            float deltaTime,
+            Quaternion bodyRotation,
+            Quaternion movementRotation,
+            Vector3 currentVelocity)
         {
             DeltaTime = Mathf.Max(0f, deltaTime);
             BodyRotation = bodyRotation;
+            MovementRotation = movementRotation;
             CurrentVelocity = currentVelocity;
         }
     }

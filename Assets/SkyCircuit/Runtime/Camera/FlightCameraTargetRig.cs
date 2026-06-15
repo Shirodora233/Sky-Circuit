@@ -1,3 +1,4 @@
+using System;
 using SkyCircuit.Flight;
 using UnityEngine;
 
@@ -12,6 +13,14 @@ namespace SkyCircuit.CameraRigging
         [SerializeField] private Transform aimTarget;
         [SerializeField] private float lookAheadDistance = 22f;
         [SerializeField] private float verticalLookOffset = 2.2f;
+        [Header("View Alignment")]
+        [SerializeField] private bool alignViewWithForward = false;
+        [SerializeField] private bool driveCameraFollowOffset = false;
+        [SerializeField] private Component cameraFollowComponent;
+        [SerializeField] private Vector3 cameraFollowOffset = new Vector3(0f, 5.2f, -14f);
+        [Tooltip("Additional pitch applied after the regular look-ahead target is calculated. Positive values look farther down.")]
+        [Range(-45f, 75f)]
+        [SerializeField] private float viewPitchDownDegrees = 7f;
         [Range(0f, 1f)]
         [SerializeField] private float velocityDirectionWeight = 0f;
         [SerializeField] private float minVelocityForDirection = 2f;
@@ -20,6 +29,20 @@ namespace SkyCircuit.CameraRigging
         private Vector3 smoothedDirection;
 
         public Transform AimTarget => aimTarget;
+
+        public void SnapAimTargetToSettings()
+        {
+            UpdateAimTarget();
+        }
+
+        public void ConfigureCameraFollowOffset(Component followComponent, Vector3 followOffset)
+        {
+            cameraFollowComponent = followComponent;
+            cameraFollowOffset = followOffset;
+            driveCameraFollowOffset = followComponent != null;
+            ApplyCameraFollowOffset();
+            UpdateAimTarget();
+        }
 
         public void Configure(
             Transform newFollowTarget,
@@ -52,6 +75,12 @@ namespace SkyCircuit.CameraRigging
             SnapToTarget();
         }
 
+        private void OnValidate()
+        {
+            ApplyCameraFollowOffset();
+            UpdateAimTarget();
+        }
+
         private void LateUpdate()
         {
             if (followTarget == null)
@@ -65,6 +94,7 @@ namespace SkyCircuit.CameraRigging
             }
 
             transform.SetPositionAndRotation(followTarget.position, GetDesiredRotation());
+            ApplyCameraFollowOffset();
             UpdateAimTarget();
         }
 
@@ -136,8 +166,45 @@ namespace SkyCircuit.CameraRigging
                 return;
             }
 
-            aimTarget.localPosition = new Vector3(0f, verticalLookOffset, lookAheadDistance);
+            aimTarget.localPosition = alignViewWithForward
+                ? GetForwardAlignedAimPosition()
+                : new Vector3(0f, verticalLookOffset, lookAheadDistance);
             aimTarget.localRotation = Quaternion.identity;
+        }
+
+        private Vector3 GetForwardAlignedAimPosition()
+        {
+            Vector3 baseAimPosition = new Vector3(0f, verticalLookOffset, lookAheadDistance);
+            Vector3 cameraToAim = baseAimPosition - cameraFollowOffset;
+            if (cameraToAim.sqrMagnitude < 0.0001f)
+            {
+                return baseAimPosition;
+            }
+
+            Vector3 pitchedCameraToAim = Quaternion.AngleAxis(viewPitchDownDegrees, Vector3.right) * cameraToAim;
+            return cameraFollowOffset + pitchedCameraToAim;
+        }
+
+        private void ApplyCameraFollowOffset()
+        {
+            if (!driveCameraFollowOffset || cameraFollowComponent == null)
+            {
+                return;
+            }
+
+            Type componentType = cameraFollowComponent.GetType();
+            var property = componentType.GetProperty("FollowOffset");
+            if (property != null && property.CanWrite && property.PropertyType == typeof(Vector3))
+            {
+                property.SetValue(cameraFollowComponent, cameraFollowOffset);
+                return;
+            }
+
+            var field = componentType.GetField("FollowOffset");
+            if (field != null && field.FieldType == typeof(Vector3))
+            {
+                field.SetValue(cameraFollowComponent, cameraFollowOffset);
+            }
         }
 
         private static float DampBlend(float sharpness, float dt)

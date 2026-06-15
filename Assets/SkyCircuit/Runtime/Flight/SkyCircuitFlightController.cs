@@ -17,6 +17,9 @@ namespace SkyCircuit.Flight
         [SerializeField] private float maxPitch = 58f;
         [SerializeField] private float maxBank = 46f;
         [SerializeField] private float rotationSharpness = 26f;
+        [Tooltip("Manual pitch offset for velocity only. It does not rotate the body or character visual.")]
+        [Range(-45f, 45f)]
+        [SerializeField] private float movementVerticalOffsetDegrees = 0f;
 
         [Header("External Forces")]
         [SerializeField] private float externalImpulseDecay = 4f;
@@ -178,7 +181,7 @@ namespace SkyCircuit.Flight
                 input.Vertical,
                 dashOutput.IsDashing,
                 dashOutput.DashAcceleration);
-            var speedContext = new FlightSpeedContext(dt, body.rotation, body.linearVelocity);
+            var speedContext = new FlightSpeedContext(dt, body.rotation, GetMovementVelocityRotation(), body.linearVelocity);
             FlightSpeedOutput output = speedModule.Step(speedInput, speedContext);
 
             float blend = DampBlend(speedModule.VelocitySharpness, dt);
@@ -189,6 +192,11 @@ namespace SkyCircuit.Flight
         private void EnsureSpeedModule()
         {
             speedModule ??= new FlightSpeedModule();
+        }
+
+        private Quaternion GetMovementVelocityRotation()
+        {
+            return body.rotation * Quaternion.Euler(movementVerticalOffsetDegrees, 0f, 0f);
         }
 
         private void EnsureDashSkillModule()

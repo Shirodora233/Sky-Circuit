@@ -27,9 +27,11 @@ namespace SkyCircuit.EditorTools
         private const float CharacterVisualPitch = -18f;
         private static readonly Vector3 DemoCameraOffset = new Vector3(1.8f, 4.6f, -7.6f);
         private static readonly Vector3 DemoAimOffset = new Vector3(0f, 0.8f, 1.6f);
-        private static readonly Vector3 PresentationCameraOffset = new Vector3(0f, 6.4f, -10.8f);
-        private const float PresentationLookAheadDistance = 7.5f;
-        private const float PresentationVerticalLookOffset = 3.2f;
+        private static readonly Vector3 PresentationCameraOffset = new Vector3(0f, 7.54f, -5.73f);
+        private const float PresentationLookAheadDistance = 6.26f;
+        private const float PresentationVerticalLookOffset = 2.44f;
+        private const float PresentationViewPitchDownDegrees = 22.7f;
+        private const float PresentationMovementVerticalOffsetDegrees = 0f;
         private const float PresentationFieldOfView = 62f;
 
         [MenuItem("Sky Circuit/Build V0.6 Presentation Slice Scene")]
@@ -70,6 +72,8 @@ namespace SkyCircuit.EditorTools
 
             SkyCircuitCharacterVisualSceneUtility.EnsureCharacterVisual(player.gameObject, "Player Character Visual");
             SkyCircuitCharacterVisualSceneUtility.EnsureCharacterVisual(opponent.gameObject, "AI Character Visual");
+            ConfigureMovementDirectionOffset(player.Controller);
+            ConfigureMovementDirectionOffset(opponent.Controller);
             ConfigurePresentationCamera();
             if (hud != null)
             {
@@ -490,6 +494,19 @@ namespace SkyCircuit.EditorTools
             EditorUtility.SetDirty(playerIndicator);
         }
 
+        private static void ConfigureMovementDirectionOffset(SkyCircuitFlightController controller)
+        {
+            if (controller == null)
+            {
+                return;
+            }
+
+            SerializedObject serializedController = new SerializedObject(controller);
+            SetFloat(serializedController, "movementVerticalOffsetDegrees", PresentationMovementVerticalOffsetDegrees);
+            serializedController.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(controller);
+        }
+
         private static void ConfigurePresentationCamera()
         {
             FlightCameraTargetRig targetRig = FindComponentOnNamedObject<FlightCameraTargetRig>("Camera Target Rig");
@@ -498,8 +515,10 @@ namespace SkyCircuit.EditorTools
                 SerializedObject serializedRig = new SerializedObject(targetRig);
                 SetFloat(serializedRig, "lookAheadDistance", PresentationLookAheadDistance);
                 SetFloat(serializedRig, "verticalLookOffset", PresentationVerticalLookOffset);
+                SetBool(serializedRig, "alignViewWithForward", true);
+                SetVector3(serializedRig, "cameraFollowOffset", PresentationCameraOffset);
+                SetFloat(serializedRig, "viewPitchDownDegrees", PresentationViewPitchDownDegrees);
                 serializedRig.ApplyModifiedPropertiesWithoutUndo();
-                EditorUtility.SetDirty(targetRig);
             }
 
             Camera mainCamera = FindComponentOnNamedObject<Camera>("Main Camera");
@@ -510,29 +529,41 @@ namespace SkyCircuit.EditorTools
             }
 
             GameObject cinemachineObject = FindNamedObject("Cinemachine Follow Camera");
-            if (cinemachineObject == null)
+            Component cinemachineFollowComponent = null;
+            if (cinemachineObject != null)
             {
-                return;
+                foreach (Component component in cinemachineObject.GetComponents<Component>())
+                {
+                    if (component == null)
+                    {
+                        continue;
+                    }
+
+                    string typeName = component.GetType().FullName ?? string.Empty;
+                    if (typeName.EndsWith(".CinemachineFollow", StringComparison.Ordinal))
+                    {
+                        cinemachineFollowComponent = component;
+                        SetMember(component, "FollowOffset", PresentationCameraOffset);
+                        EditorUtility.SetDirty(component);
+                    }
+                    else if (typeName.EndsWith(".CinemachineCamera", StringComparison.Ordinal))
+                    {
+                        SetNestedMember(component, "Lens", "FieldOfView", PresentationFieldOfView);
+                        EditorUtility.SetDirty(component);
+                    }
+                }
             }
 
-            foreach (Component component in cinemachineObject.GetComponents<Component>())
+            if (targetRig != null)
             {
-                if (component == null)
+                targetRig.ConfigureCameraFollowOffset(cinemachineFollowComponent, PresentationCameraOffset);
+                targetRig.SnapAimTargetToSettings();
+                if (targetRig.AimTarget != null)
                 {
-                    continue;
+                    EditorUtility.SetDirty(targetRig.AimTarget);
                 }
 
-                string typeName = component.GetType().FullName ?? string.Empty;
-                if (typeName.EndsWith(".CinemachineFollow", StringComparison.Ordinal))
-                {
-                    SetMember(component, "FollowOffset", PresentationCameraOffset);
-                    EditorUtility.SetDirty(component);
-                }
-                else if (typeName.EndsWith(".CinemachineCamera", StringComparison.Ordinal))
-                {
-                    SetNestedMember(component, "Lens", "FieldOfView", PresentationFieldOfView);
-                    EditorUtility.SetDirty(component);
-                }
+                EditorUtility.SetDirty(targetRig);
             }
         }
 
@@ -592,6 +623,15 @@ namespace SkyCircuit.EditorTools
             if (property != null)
             {
                 property.floatValue = value;
+            }
+        }
+
+        private static void SetBool(SerializedObject serializedObject, string propertyName, bool value)
+        {
+            SerializedProperty property = serializedObject.FindProperty(propertyName);
+            if (property != null)
+            {
+                property.boolValue = value;
             }
         }
 
