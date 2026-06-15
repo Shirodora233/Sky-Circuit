@@ -318,6 +318,7 @@ namespace SkyCircuit.EditorTools
             SetFloat(serializedPose, "upperArmOpenAngle", 0f);
             SetFloat(serializedPose, "forearmBackAngle", 10f);
             SetFloat(serializedPose, "forearmOpenAngle", 4f);
+            SetFloat(serializedPose, "turnUpperArmOpenReduction", 0.65f);
             SetFloat(serializedPose, "leftUpperLegForwardAngle", 21.3f);
             SetFloat(serializedPose, "rightUpperLegForwardAngle", 14.68f);
             SetFloat(serializedPose, "leftLowerLegBackAngle", 34.41f);

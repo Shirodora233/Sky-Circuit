@@ -165,19 +165,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1229073203963117358, guid: 0bee29d53fe5c4d4f85a8225df0e007e, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.960498
+      value: 0.9535448
       objectReference: {fileID: 0}
     - target: {fileID: 1229073203963117358, guid: 0bee29d53fe5c4d4f85a8225df0e007e, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0.27179974
+      value: 0.29442587
       objectReference: {fileID: 0}
     - target: {fileID: 1229073203963117358, guid: 0bee29d53fe5c4d4f85a8225df0e007e, type: 3}
       propertyPath: m_LocalRotation.y
-      value: -0.01826739
+      value: -0.017628891
       objectReference: {fileID: 0}
     - target: {fileID: 1229073203963117358, guid: 0bee29d53fe5c4d4f85a8225df0e007e, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0.056876007
+      value: 0.06127841
       objectReference: {fileID: 0}
     - target: {fileID: 1436456989091681028, guid: 0bee29d53fe5c4d4f85a8225df0e007e, type: 3}
       propertyPath: m_LocalRotation.w
@@ -197,19 +197,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1865153909569566479, guid: 0bee29d53fe5c4d4f85a8225df0e007e, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.97780186
+      value: 0.9743747
       objectReference: {fileID: 0}
     - target: {fileID: 1865153909569566479, guid: 0bee29d53fe5c4d4f85a8225df0e007e, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.18874922
+      value: -0.20552
       objectReference: {fileID: 0}
     - target: {fileID: 1865153909569566479, guid: 0bee29d53fe5c4d4f85a8225df0e007e, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0.08334933
+      value: 0.08284235
       objectReference: {fileID: 0}
     - target: {fileID: 1865153909569566479, guid: 0bee29d53fe5c4d4f85a8225df0e007e, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0.036470532
+      value: -0.038634688
       objectReference: {fileID: 0}
     - target: {fileID: 2089177695704459820, guid: 0bee29d53fe5c4d4f85a8225df0e007e, type: 3}
       propertyPath: m_LocalRotation.w
@@ -473,19 +473,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3884097811174305981, guid: 0bee29d53fe5c4d4f85a8225df0e007e, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.98768836
+      value: 0.98768026
       objectReference: {fileID: 0}
     - target: {fileID: 3884097811174305981, guid: 0bee29d53fe5c4d4f85a8225df0e007e, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.15643448
+      value: -0.15643972
       objectReference: {fileID: 0}
     - target: {fileID: 3884097811174305981, guid: 0bee29d53fe5c4d4f85a8225df0e007e, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: -0.002857874
       objectReference: {fileID: 0}
     - target: {fileID: 3884097811174305981, guid: 0bee29d53fe5c4d4f85a8225df0e007e, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0
+      value: 0.0024847786
       objectReference: {fileID: 0}
     - target: {fileID: 3884097811174305981, guid: 0bee29d53fe5c4d4f85a8225df0e007e, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -657,19 +657,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5879607782806155093, guid: 0bee29d53fe5c4d4f85a8225df0e007e, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.90908545
+      value: 0.9071358
       objectReference: {fileID: 0}
     - target: {fileID: 5879607782806155093, guid: 0bee29d53fe5c4d4f85a8225df0e007e, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0.20369598
+      value: 0.20243962
       objectReference: {fileID: 0}
     - target: {fileID: 5879607782806155093, guid: 0bee29d53fe5c4d4f85a8225df0e007e, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0.05605722
+      value: 0.055569448
       objectReference: {fileID: 0}
     - target: {fileID: 5879607782806155093, guid: 0bee29d53fe5c4d4f85a8225df0e007e, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0.3590673
+      value: 0.36473942
       objectReference: {fileID: 0}
     - target: {fileID: 6065258532113012747, guid: 0bee29d53fe5c4d4f85a8225df0e007e, type: 3}
       propertyPath: m_LocalPosition.z
@@ -697,19 +697,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6174571856002200164, guid: 0bee29d53fe5c4d4f85a8225df0e007e, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.9976858
+      value: 0.99762905
       objectReference: {fileID: 0}
     - target: {fileID: 6174571856002200164, guid: 0bee29d53fe5c4d4f85a8225df0e007e, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0.0024464726
+      value: 0.0016663817
       objectReference: {fileID: 0}
     - target: {fileID: 6174571856002200164, guid: 0bee29d53fe5c4d4f85a8225df0e007e, type: 3}
       propertyPath: m_LocalRotation.y
-      value: -0.067073636
+      value: -0.06792826
       objectReference: {fileID: 0}
     - target: {fileID: 6174571856002200164, guid: 0bee29d53fe5c4d4f85a8225df0e007e, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0.010879803
+      value: -0.010920732
       objectReference: {fileID: 0}
     - target: {fileID: 6420530959386908096, guid: 0bee29d53fe5c4d4f85a8225df0e007e, type: 3}
       propertyPath: m_LocalRotation.w
@@ -2842,11 +2842,12 @@ MonoBehaviour:
   editModeBaseClipTime: 0
   editModePreviewWeight: 1
   editModeDashPreviewWeight: 0
-  editModeTurnAmount: 0
+  editModeTurnAmount: -0.046
   upperArmBackAngle: 10.5
   upperArmOpenAngle: 23.56
   forearmBackAngle: 10.82
   forearmOpenAngle: 4
+  turnUpperArmOpenReduction: 0.65
   leftUpperLegForwardAngle: 21.3
   rightUpperLegForwardAngle: 14.68
   leftLowerLegBackAngle: 34.41
@@ -2879,10 +2880,10 @@ MonoBehaviour:
   rightForearmExtraEuler: {x: 0, y: 0, z: 0}
   effectivePoseWeight: 1
   effectiveDashPoseWeight: 0
-  effectiveTurnRate: 0
-  effectiveTurnLegPose: 0
-  effectiveVisualYaw: 0
-  effectiveVisualBank: -0
+  effectiveTurnRate: -3.22
+  effectiveTurnLegPose: -0.046
+  effectiveVisualYaw: -0.368
+  effectiveVisualBank: 0.23
   status: 'Edit preview: base clip'
 --- !u!114 &851752481
 MonoBehaviour:
@@ -3224,6 +3225,7 @@ MonoBehaviour:
   upperArmOpenAngle: 0
   forearmBackAngle: 10
   forearmOpenAngle: 4
+  turnUpperArmOpenReduction: 0.65
   leftUpperLegForwardAngle: 21.3
   rightUpperLegForwardAngle: 14.68
   leftLowerLegBackAngle: 34.41

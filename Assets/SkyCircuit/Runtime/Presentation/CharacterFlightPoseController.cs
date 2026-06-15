@@ -38,6 +38,10 @@ namespace SkyCircuit.Presentation
         [SerializeField] private float forearmBackAngle = 10f;
         [SerializeField] private float forearmOpenAngle = 4f;
 
+        [Header("Turn Arm Pose")]
+        [Tooltip("Reduces the upper arm open amount on the turn-side arm. 1 fully pulls that arm's open angle toward zero.")]
+        [SerializeField, Range(0f, 1f)] private float turnUpperArmOpenReduction = 0.65f;
+
         [Header("Leg Pose")]
         [FormerlySerializedAs("upperLegForwardAngle")]
         [SerializeField] private float leftUpperLegForwardAngle = 4f;
@@ -205,7 +209,7 @@ namespace SkyCircuit.Presentation
             smoothedWeight = Mathf.Lerp(smoothedWeight, targetWeight, DampBlend(poseSmoothing, dt));
             effectivePoseWeight = smoothedWeight;
             status = HasAllPoseBones() ? "Running" : "Missing pose bones";
-            ApplyArmPose(smoothedWeight);
+            ApplyArmPose(smoothedWeight, smoothedTurnLegPose);
             ApplyLegPose(smoothedWeight, smoothedTurnLegPose);
             ApplyHandPose(smoothedWeight);
             ApplyVisualTurnPose(effectiveVisualYaw, effectiveVisualBank);
@@ -267,7 +271,7 @@ namespace SkyCircuit.Presentation
             effectiveVisualYaw = editModeTurnAmount * visualYawAngle;
             effectiveVisualBank = -editModeTurnAmount * visualBankAngle;
             status = HasAllPoseBones() ? BuildEditPreviewStatus() : "Missing pose bones";
-            ApplyArmPose(effectivePoseWeight);
+            ApplyArmPose(effectivePoseWeight, effectiveTurnLegPose);
             ApplyLegPose(effectivePoseWeight, effectiveTurnLegPose);
             ApplyHandPose(effectivePoseWeight);
             ApplyVisualTurnPose(effectiveVisualYaw, effectiveVisualBank);
@@ -573,7 +577,7 @@ namespace SkyCircuit.Presentation
             return sign * Mathf.Clamp01(shapedRate * turnLegInputGain);
         }
 
-        private void ApplyArmPose(float weight)
+        private void ApplyArmPose(float weight, float turnPose)
         {
             if (weight <= 0.001f)
             {
@@ -587,13 +591,22 @@ namespace SkyCircuit.Presentation
             float dashBack = dashExtraBackAngle * effectiveDashPoseWeight;
             float upperBack = (upperArmBackAngle + dashBack) * weight;
             float lowerBack = (forearmBackAngle + dashBack * 0.45f) * weight;
-            float upperOpen = upperArmOpenAngle * weight;
+            float leftTurn = Mathf.Clamp01(-turnPose);
+            float rightTurn = Mathf.Clamp01(turnPose);
+            float leftUpperOpen = BuildTurnSideUpperArmOpen(upperArmOpenAngle, leftTurn) * weight;
+            float rightUpperOpen = BuildTurnSideUpperArmOpen(upperArmOpenAngle, rightTurn) * weight;
             float lowerOpen = forearmOpenAngle * weight;
 
-            ApplyMirroredArmPose(leftUpperArm, -1f, bodyRight, bodyUp, upperBack, upperOpen, leftUpperArmExtraEuler, weight);
-            ApplyMirroredArmPose(rightUpperArm, 1f, bodyRight, bodyUp, upperBack, upperOpen, rightUpperArmExtraEuler, weight);
+            ApplyMirroredArmPose(leftUpperArm, -1f, bodyRight, bodyUp, upperBack, leftUpperOpen, leftUpperArmExtraEuler, weight);
+            ApplyMirroredArmPose(rightUpperArm, 1f, bodyRight, bodyUp, upperBack, rightUpperOpen, rightUpperArmExtraEuler, weight);
             ApplyMirroredArmPose(leftLowerArm, -1f, bodyRight, bodyUp, lowerBack, lowerOpen, leftForearmExtraEuler, weight);
             ApplyMirroredArmPose(rightLowerArm, 1f, bodyRight, bodyUp, lowerBack, lowerOpen, rightForearmExtraEuler, weight);
+        }
+
+        private float BuildTurnSideUpperArmOpen(float baseOpenAngle, float turnAmount)
+        {
+            float reduction = Mathf.Clamp01(turnAmount) * turnUpperArmOpenReduction;
+            return Mathf.Lerp(baseOpenAngle, 0f, reduction);
         }
 
         private void ApplyLegPose(float weight, float turnPose)
