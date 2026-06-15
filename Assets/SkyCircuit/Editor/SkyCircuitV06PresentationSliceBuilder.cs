@@ -27,10 +27,10 @@ namespace SkyCircuit.EditorTools
         private const float CharacterVisualPitch = -18f;
         private static readonly Vector3 DemoCameraOffset = new Vector3(1.8f, 4.6f, -7.6f);
         private static readonly Vector3 DemoAimOffset = new Vector3(0f, 0.8f, 1.6f);
-        private static readonly Vector3 PresentationCameraOffset = new Vector3(0f, 7.54f, -5.73f);
-        private const float PresentationLookAheadDistance = 6.26f;
-        private const float PresentationVerticalLookOffset = 2.44f;
-        private const float PresentationViewPitchDownDegrees = 22.7f;
+        private static readonly Vector3 PresentationCameraOffset = new Vector3(0f, 7.5f, -5.7f);
+        private const float PresentationLookAheadDistance = 6.5f;
+        private const float PresentationVerticalLookOffset = 2.5f;
+        private const float PresentationViewPitchDownDegrees = 23f;
         private const float PresentationMovementVerticalOffsetDegrees = 0f;
         private const float PresentationFieldOfView = 62f;
 
@@ -314,13 +314,29 @@ namespace SkyCircuit.EditorTools
             configure?.Invoke(pose, new object[] { flightController, player.GetComponent<Rigidbody>() });
 
             SerializedObject serializedPose = new SerializedObject(pose);
-            SetFloat(serializedPose, "upperArmBackAngle", 34f);
-            SetFloat(serializedPose, "upperArmOpenAngle", 20f);
+            SetFloat(serializedPose, "upperArmBackAngle", 22.81f);
+            SetFloat(serializedPose, "upperArmOpenAngle", 0f);
+            SetFloat(serializedPose, "forearmBackAngle", 10f);
+            SetFloat(serializedPose, "forearmOpenAngle", 4f);
+            SetFloat(serializedPose, "leftUpperLegForwardAngle", 21.3f);
+            SetFloat(serializedPose, "rightUpperLegForwardAngle", 14.68f);
+            SetFloat(serializedPose, "leftLowerLegBackAngle", 34.41f);
+            SetFloat(serializedPose, "rightLowerLegBackAngle", 23.23f);
+            SetBool(serializedPose, "openHands", false);
+            SetFloat(serializedPose, "handOpenWeight", 1f);
+            SetVector3(serializedPose, "fingerOpenEuler", new Vector3(-18f, 0f, 0f));
+            SetVector3(serializedPose, "thumbOpenEuler", new Vector3(-10f, 0f, 0f));
             SetFloat(serializedPose, "dashExtraBackAngle", 12f);
             SetFloat(serializedPose, "dashPoseWeightAdd", 0.25f);
             SetFloat(serializedPose, "dashPoseEnterTime", 0.18f);
             SetFloat(serializedPose, "dashPoseExitTime", 0.28f);
             SetFloat(serializedPose, "poseWeightOverride", -1f);
+            SetBool(serializedPose, "previewInEditMode", true);
+            SetBool(serializedPose, "sampleEditModeBaseClip", true);
+            SetObjectReference(serializedPose, "editModeBaseClip", LoadFlyingClip());
+            SetFloat(serializedPose, "editModeBaseClipTime", 0f);
+            SetFloat(serializedPose, "editModePreviewWeight", 1f);
+            SetFloat(serializedPose, "editModeDashPreviewWeight", 0f);
             serializedPose.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -632,6 +648,15 @@ namespace SkyCircuit.EditorTools
             if (property != null)
             {
                 property.boolValue = value;
+            }
+        }
+
+        private static void SetObjectReference(SerializedObject serializedObject, string propertyName, UnityEngine.Object value)
+        {
+            SerializedProperty property = serializedObject.FindProperty(propertyName);
+            if (property != null)
+            {
+                property.objectReferenceValue = value;
             }
         }
 

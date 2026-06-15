@@ -148,13 +148,29 @@ namespace SkyCircuit.EditorTools
             pose.Configure(controller, body);
 
             SerializedObject serializedPose = new SerializedObject(pose);
-            SetFloat(serializedPose, "upperArmBackAngle", 34f);
-            SetFloat(serializedPose, "upperArmOpenAngle", 20f);
+            SetFloat(serializedPose, "upperArmBackAngle", 22.81f);
+            SetFloat(serializedPose, "upperArmOpenAngle", 0f);
+            SetFloat(serializedPose, "forearmBackAngle", 10f);
+            SetFloat(serializedPose, "forearmOpenAngle", 4f);
+            SetFloat(serializedPose, "leftUpperLegForwardAngle", 21.3f);
+            SetFloat(serializedPose, "rightUpperLegForwardAngle", 14.68f);
+            SetFloat(serializedPose, "leftLowerLegBackAngle", 34.41f);
+            SetFloat(serializedPose, "rightLowerLegBackAngle", 23.23f);
+            SetBool(serializedPose, "openHands", false);
+            SetFloat(serializedPose, "handOpenWeight", 1f);
+            SetVector3(serializedPose, "fingerOpenEuler", new Vector3(-18f, 0f, 0f));
+            SetVector3(serializedPose, "thumbOpenEuler", new Vector3(-10f, 0f, 0f));
             SetFloat(serializedPose, "dashExtraBackAngle", 12f);
             SetFloat(serializedPose, "dashPoseWeightAdd", 0.25f);
             SetFloat(serializedPose, "dashPoseEnterTime", 0.18f);
             SetFloat(serializedPose, "dashPoseExitTime", 0.28f);
             SetFloat(serializedPose, "poseWeightOverride", -1f);
+            SetBool(serializedPose, "previewInEditMode", true);
+            SetBool(serializedPose, "sampleEditModeBaseClip", true);
+            SetObjectReference(serializedPose, "editModeBaseClip", LoadFlyingClip());
+            SetFloat(serializedPose, "editModeBaseClipTime", 0f);
+            SetFloat(serializedPose, "editModePreviewWeight", 1f);
+            SetFloat(serializedPose, "editModeDashPreviewWeight", 0f);
             serializedPose.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -277,6 +293,33 @@ namespace SkyCircuit.EditorTools
             if (property != null)
             {
                 property.floatValue = value;
+            }
+        }
+
+        private static void SetVector3(SerializedObject serializedObject, string propertyName, Vector3 value)
+        {
+            SerializedProperty property = serializedObject.FindProperty(propertyName);
+            if (property != null)
+            {
+                property.vector3Value = value;
+            }
+        }
+
+        private static void SetBool(SerializedObject serializedObject, string propertyName, bool value)
+        {
+            SerializedProperty property = serializedObject.FindProperty(propertyName);
+            if (property != null)
+            {
+                property.boolValue = value;
+            }
+        }
+
+        private static void SetObjectReference(SerializedObject serializedObject, string propertyName, UnityEngine.Object value)
+        {
+            SerializedProperty property = serializedObject.FindProperty(propertyName);
+            if (property != null)
+            {
+                property.objectReferenceValue = value;
             }
         }
     }
