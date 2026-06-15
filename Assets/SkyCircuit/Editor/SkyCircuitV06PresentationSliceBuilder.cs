@@ -329,6 +329,8 @@ namespace SkyCircuit.EditorTools
             SetFloat(serializedPose, "turnLegInputResponse", 0.7f);
             SetFloat(serializedPose, "turnLegDeadZone", 2f);
             SetFloat(serializedPose, "turnLegPoseSmoothing", 7f);
+            SetVector3(serializedPose, "visualBaseLocalEuler", new Vector3(CharacterVisualPitch, 0f, 0f));
+            SetFloat(serializedPose, "visualYawAngle", 8f);
             SetFloat(serializedPose, "visualBankAngle", 42f);
             SetFloat(serializedPose, "visualBankEnterSharpness", 3f);
             SetFloat(serializedPose, "visualBankReturnSharpness", 1.2f);
