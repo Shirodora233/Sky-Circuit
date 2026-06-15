@@ -2860,6 +2860,8 @@ MonoBehaviour:
   turnLegPoseSmoothing: 7
   visualBaseLocalEuler: {x: -18, y: 0, z: 0}
   visualYawAngle: 8
+  visualYawFullErrorAngle: 28
+  visualYawSharpness: 10
   visualBankAngle: 5
   visualBankEnterSharpness: 3
   visualBankReturnSharpness: 1.2
@@ -3235,6 +3237,8 @@ MonoBehaviour:
   turnLegPoseSmoothing: 7
   visualBaseLocalEuler: {x: -18, y: 0, z: 0}
   visualYawAngle: 8
+  visualYawFullErrorAngle: 28
+  visualYawSharpness: 10
   visualBankAngle: 42
   visualBankEnterSharpness: 3
   visualBankReturnSharpness: 1.2

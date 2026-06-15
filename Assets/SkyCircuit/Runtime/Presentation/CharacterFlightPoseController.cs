@@ -59,6 +59,10 @@ namespace SkyCircuit.Presentation
         [Tooltip("Neutral local rotation for the character visual root. Turn pose yaw and bank are applied on top of this value.")]
         [SerializeField] private Vector3 visualBaseLocalEuler = new Vector3(-18f, 0f, 0f);
         [SerializeField] private float visualYawAngle = 8f;
+        [Tooltip("Control yaw error, in degrees, needed to reach full visual yaw pose.")]
+        [SerializeField, Min(1f)] private float visualYawFullErrorAngle = 28f;
+        [Tooltip("How quickly the character visual yaw follows the camera/control yaw offset.")]
+        [SerializeField, Min(0.01f)] private float visualYawSharpness = 10f;
         [SerializeField] private float visualBankAngle = 42f;
         [SerializeField, Min(0.01f)] private float visualBankEnterSharpness = 3f;
         [SerializeField, Min(0.01f)] private float visualBankReturnSharpness = 1.2f;
@@ -106,7 +110,8 @@ namespace SkyCircuit.Presentation
         private float smoothedWeight;
         private float dashPoseBlend;
         private float smoothedTurnLegPose;
-        private float smoothedVisualTurnPose;
+        private float smoothedVisualYawPose;
+        private float smoothedVisualBankPose;
         private bool visualBaseCaptured;
         private bool editModePoseCaptured;
         private Quaternion visualBaseLocalRotation;
@@ -142,7 +147,8 @@ namespace SkyCircuit.Presentation
             smoothedWeight = 0f;
             dashPoseBlend = 0f;
             smoothedTurnLegPose = 0f;
-            smoothedVisualTurnPose = 0f;
+            smoothedVisualYawPose = 0f;
+            smoothedVisualBankPose = 0f;
             visualBaseCaptured = false;
             CaptureVisualBaseRotation();
             if (!Application.isPlaying)
@@ -526,14 +532,29 @@ namespace SkyCircuit.Presentation
 
         private void UpdateVisualTurnPose(float dt)
         {
-            float target = BuildActualTurnPoseInput();
-            float sharpness = Mathf.Abs(target) > Mathf.Abs(smoothedVisualTurnPose)
+            float yawTarget = BuildControlYawPoseInput();
+            smoothedVisualYawPose = Mathf.Lerp(smoothedVisualYawPose, yawTarget, DampBlend(visualYawSharpness, dt));
+
+            float bankTarget = BuildActualTurnPoseInput();
+            float bankSharpness = Mathf.Abs(bankTarget) > Mathf.Abs(smoothedVisualBankPose)
                 ? visualBankEnterSharpness
                 : visualBankReturnSharpness;
 
-            smoothedVisualTurnPose = Mathf.Lerp(smoothedVisualTurnPose, target, DampBlend(sharpness, dt));
-            effectiveVisualYaw = smoothedVisualTurnPose * visualYawAngle;
-            effectiveVisualBank = -smoothedVisualTurnPose * visualBankAngle;
+            smoothedVisualBankPose = Mathf.Lerp(smoothedVisualBankPose, bankTarget, DampBlend(bankSharpness, dt));
+            effectiveVisualYaw = smoothedVisualYawPose * visualYawAngle;
+            effectiveVisualBank = -smoothedVisualBankPose * visualBankAngle;
+        }
+
+        private float BuildControlYawPoseInput()
+        {
+            if (controller == null)
+            {
+                return 0f;
+            }
+
+            Quaternion bodyRotation = sourceBody != null ? sourceBody.rotation : transform.rotation;
+            float yawError = Mathf.DeltaAngle(bodyRotation.eulerAngles.y, controller.ControlRotation.eulerAngles.y);
+            return Mathf.Clamp(yawError / Mathf.Max(1f, visualYawFullErrorAngle), -1f, 1f);
         }
 
         private float BuildActualTurnPoseInput()
