@@ -412,23 +412,40 @@ namespace SkyCircuit.EditorTools
 
         private static void CreateContrail(GameObject player, SkyCircuitFlightController controller)
         {
-            GameObject trailObject = new GameObject("Demo Contrail");
-            trailObject.transform.SetParent(player.transform, false);
-            trailObject.transform.localPosition = new Vector3(0f, 0.25f, -2.3f);
+            TrailRenderer[] trails =
+            {
+                CreateContrailTrail(player.transform, "Demo Contrail L", new Vector3(-0.34f, 0.18f, -2.35f)),
+                CreateContrailTrail(player.transform, "Demo Contrail R", new Vector3(0.34f, 0.18f, -2.35f))
+            };
+
+            FlightContrailFeedback feedback = player.AddComponent<FlightContrailFeedback>();
+            feedback.Configure(controller, trails);
+        }
+
+        private static TrailRenderer CreateContrailTrail(Transform parent, string name, Vector3 localPosition)
+        {
+            GameObject trailObject = new GameObject(name);
+            trailObject.transform.SetParent(parent, false);
+            trailObject.transform.localPosition = localPosition;
 
             TrailRenderer trail = trailObject.AddComponent<TrailRenderer>();
             trail.alignment = LineAlignment.View;
             trail.autodestruct = false;
             trail.emitting = true;
-            trail.time = 0.65f;
-            trail.minVertexDistance = 0.18f;
-            trail.widthMultiplier = 0.22f;
+            trail.time = 0.8f;
+            trail.minVertexDistance = 0.12f;
+            trail.widthMultiplier = 0.18f;
+            trail.numCornerVertices = 2;
+            trail.numCapVertices = 2;
+            trail.textureMode = LineTextureMode.Stretch;
+            trail.widthCurve = new AnimationCurve(
+                new Keyframe(0f, 0.18f),
+                new Keyframe(0.22f, 0.72f),
+                new Keyframe(1f, 1f));
             trail.material = new Material(Shader.Find("Sprites/Default"));
-            trail.startColor = new Color(0.25f, 0.85f, 1f, 1f);
-            trail.endColor = new Color(0.25f, 0.85f, 1f, 0f);
-
-            FlightContrailFeedback feedback = player.AddComponent<FlightContrailFeedback>();
-            feedback.Configure(controller, trail);
+            trail.startColor = new Color(0.85f, 0.38f, 1f, 0.95f);
+            trail.endColor = new Color(0.85f, 0.38f, 1f, 0f);
+            return trail;
         }
 
         private static FlightCameraTargetRig CreateCameraTargetRig(
