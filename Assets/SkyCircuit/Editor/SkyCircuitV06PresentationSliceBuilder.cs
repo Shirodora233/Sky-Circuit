@@ -552,6 +552,15 @@ namespace SkyCircuit.EditorTools
 
             playerIndicator.Configure(mainCamera, match, dogfight);
             EditorUtility.SetDirty(playerIndicator);
+
+            MatchScoreboardHud scoreboard = hud.GetComponent<MatchScoreboardHud>();
+            if (scoreboard == null)
+            {
+                scoreboard = hud.gameObject.AddComponent<MatchScoreboardHud>();
+            }
+
+            scoreboard.Configure(match);
+            EditorUtility.SetDirty(scoreboard);
         }
 
         private static void ConfigureMovementDirectionOffset(SkyCircuitFlightController controller)

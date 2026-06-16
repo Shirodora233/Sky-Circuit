@@ -1096,7 +1096,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 967d6ed407d54484b8c5ea1eb6b15785, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::SkyCircuit.Match.MatchController
   countdownDuration: 3
   matchDuration: 180
@@ -1583,6 +1583,7 @@ GameObject:
   - component: {fileID: 296749294}
   - component: {fileID: 296749295}
   - component: {fileID: 296749296}
+  - component: {fileID: 296749297}
   m_Layer: 0
   m_Name: Match HUD
   m_TagString: Untagged
@@ -1682,6 +1683,37 @@ MonoBehaviour:
   pulseSpeed: 5
   warningColor: {r: 1, g: 0.48, b: 0.12, a: 1}
   dangerColor: {r: 1, g: 0.08, b: 0.04, a: 1}
+--- !u!114 &296749297
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 296749292}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4d7c6e9f5b24bf5aa91f7a8441bc201, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::SkyCircuit.Presentation.MatchScoreboardHud
+  match: {fileID: 114491972}
+  referenceResolution: {x: 1920, y: 1080}
+  boardSize: {x: 780, y: 170}
+  topOffset: 18
+  centerGap: 96
+  headerHeightRatio: 0.28
+  scoreDigits: 2
+  leftNameOverride: ""
+  rightNameOverride: ""
+  nameFontSize: 26
+  labelFont: {fileID: 0}
+  lineColor: {r: 0.95, g: 0.92, b: 0.02, a: 0.92}
+  scoreColor: {r: 1, g: 0.96, b: 0, a: 1}
+  backgroundColor: {r: 0, g: 0, b: 0, a: 0.38}
+  glowColor: {r: 1, g: 0.96, b: 0, a: 0}
+  borderThickness: 3
+  glowPadding: 12
+  segmentThickness: 0.15
+  inactiveSegmentAlpha: 0
 --- !u!1 &421439806
 GameObject:
   m_ObjectHideFlags: 0
