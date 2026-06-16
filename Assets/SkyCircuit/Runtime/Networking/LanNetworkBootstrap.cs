@@ -1,0 +1,261 @@
+using Unity.Netcode;
+using Unity.Netcode.Transports.UTP;
+using UnityEngine;
+
+namespace SkyCircuit.Networking
+{
+    [DisallowMultipleComponent]
+    public sealed class LanNetworkBootstrap : MonoBehaviour
+    {
+        private const string AnyIpv4Address = "0.0.0.0";
+        private const string LocalhostAddress = "127.0.0.1";
+        private const ushort FallbackPort = 7777;
+        private const float FallbackConnectTimeoutSeconds = 10f;
+
+        [SerializeField] private LanConnectionSettings settings;
+        [SerializeField] private NetworkManager networkManager;
+        [SerializeField] private UnityTransport transport;
+        [SerializeField] private string clientAddressOverride;
+        [SerializeField] private bool findSceneNetworkManager = true;
+
+        private string statusText = "Offline";
+        private bool callbacksRegistered;
+
+        public LanConnectionSettings Settings => settings;
+        public string ClientAddress => ResolveClientAddress();
+        public string StatusText => statusText;
+        public ushort Port => settings != null ? settings.Port : FallbackPort;
+        public bool IsListening => networkManager != null && networkManager.IsListening;
+        public bool IsHost => networkManager != null && networkManager.IsHost;
+        public bool IsClient => networkManager != null && networkManager.IsClient;
+        public bool IsServer => networkManager != null && networkManager.IsServer;
+        public ulong LocalClientId => networkManager != null ? networkManager.LocalClientId : 0UL;
+
+        public int ConnectedClientCount
+        {
+            get
+            {
+                if (networkManager == null || networkManager.ConnectedClientsIds == null)
+                {
+                    return 0;
+                }
+
+                return networkManager.ConnectedClientsIds.Count;
+            }
+        }
+
+        private void Awake()
+        {
+            ResolveNetworkObjects();
+            RegisterCallbacks();
+        }
+
+        private void OnDestroy()
+        {
+            UnregisterCallbacks();
+        }
+
+        public void SetClientAddress(string address)
+        {
+            clientAddressOverride = address != null ? address.Trim() : string.Empty;
+        }
+
+        public bool StartHost()
+        {
+            return StartHost(ResolveClientAddress());
+        }
+
+        public bool StartHost(string hostAddress)
+        {
+            if (!CanStart("host"))
+            {
+                return false;
+            }
+
+            if (!ConfigureTransport(hostAddress, true))
+            {
+                return false;
+            }
+
+            bool started = networkManager.StartHost();
+            statusText = started ? $"Hosting on port {Port}" : "Failed to start host";
+            return started;
+        }
+
+        public bool StartClient()
+        {
+            return StartClient(ResolveClientAddress());
+        }
+
+        public bool StartClient(string hostAddress)
+        {
+            if (!CanStart("client"))
+            {
+                return false;
+            }
+
+            if (!ConfigureTransport(hostAddress, false))
+            {
+                return false;
+            }
+
+            bool started = networkManager.StartClient();
+            statusText = started ? $"Connecting to {ResolveClientAddress()}:{Port}" : "Failed to start client";
+            return started;
+        }
+
+        public void Shutdown()
+        {
+            if (networkManager == null)
+            {
+                statusText = "Missing NetworkManager";
+                return;
+            }
+
+            if (networkManager.IsListening)
+            {
+                networkManager.Shutdown();
+            }
+
+            statusText = "Offline";
+        }
+
+        private bool CanStart(string mode)
+        {
+            ResolveNetworkObjects();
+            RegisterCallbacks();
+
+            if (networkManager == null)
+            {
+                statusText = $"Cannot start {mode}: missing NetworkManager";
+                return false;
+            }
+
+            if (transport == null)
+            {
+                statusText = $"Cannot start {mode}: missing UnityTransport";
+                return false;
+            }
+
+            if (networkManager.IsListening)
+            {
+                statusText = $"Already running as {DescribeMode()}";
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool ConfigureTransport(string hostAddress, bool hostMode)
+        {
+            string endpointAddress = NormalizeAddress(hostAddress);
+            string listenAddress = hostMode ? AnyIpv4Address : null;
+
+            transport.SetConnectionData(endpointAddress, Port, listenAddress);
+            transport.ConnectTimeoutMS = Mathf.RoundToInt(ResolveConnectTimeoutSeconds() * 1000f);
+            SetClientAddress(endpointAddress);
+            return true;
+        }
+
+        private void ResolveNetworkObjects()
+        {
+            if (networkManager == null && NetworkManager.Singleton != null)
+            {
+                networkManager = NetworkManager.Singleton;
+            }
+
+            if (networkManager == null && findSceneNetworkManager)
+            {
+                networkManager = FindFirstObjectByType<NetworkManager>(FindObjectsInactive.Include);
+            }
+
+            if (transport == null && networkManager != null)
+            {
+                transport = networkManager.NetworkConfig.NetworkTransport as UnityTransport;
+                if (transport == null)
+                {
+                    transport = networkManager.GetComponent<UnityTransport>();
+                }
+            }
+        }
+
+        private void RegisterCallbacks()
+        {
+            if (callbacksRegistered || networkManager == null)
+            {
+                return;
+            }
+
+            networkManager.OnClientConnectedCallback += HandleClientConnected;
+            networkManager.OnClientDisconnectCallback += HandleClientDisconnected;
+            callbacksRegistered = true;
+        }
+
+        private void UnregisterCallbacks()
+        {
+            if (!callbacksRegistered || networkManager == null)
+            {
+                return;
+            }
+
+            networkManager.OnClientConnectedCallback -= HandleClientConnected;
+            networkManager.OnClientDisconnectCallback -= HandleClientDisconnected;
+            callbacksRegistered = false;
+        }
+
+        private void HandleClientConnected(ulong clientId)
+        {
+            statusText = $"{DescribeMode()} connected client {clientId} ({ConnectedClientCount} connected)";
+        }
+
+        private void HandleClientDisconnected(ulong clientId)
+        {
+            statusText = $"{DescribeMode()} disconnected client {clientId} ({ConnectedClientCount} connected)";
+        }
+
+        private string ResolveClientAddress()
+        {
+            if (!string.IsNullOrWhiteSpace(clientAddressOverride))
+            {
+                return clientAddressOverride.Trim();
+            }
+
+            return settings != null ? settings.DefaultHostAddress : LocalhostAddress;
+        }
+
+        private float ResolveConnectTimeoutSeconds()
+        {
+            return settings != null ? settings.ConnectTimeoutSeconds : FallbackConnectTimeoutSeconds;
+        }
+
+        private static string NormalizeAddress(string address)
+        {
+            return string.IsNullOrWhiteSpace(address) ? LocalhostAddress : address.Trim();
+        }
+
+        private string DescribeMode()
+        {
+            if (networkManager == null)
+            {
+                return "Offline";
+            }
+
+            if (networkManager.IsHost)
+            {
+                return "Host";
+            }
+
+            if (networkManager.IsServer)
+            {
+                return "Server";
+            }
+
+            if (networkManager.IsClient)
+            {
+                return "Client";
+            }
+
+            return "Offline";
+        }
+    }
+}
