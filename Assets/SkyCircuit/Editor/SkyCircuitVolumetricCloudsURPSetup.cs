@@ -12,11 +12,11 @@ namespace SkyCircuit.EditorTools
     public static class SkyCircuitVolumetricCloudsURPSetup
     {
         private const string ScenePath = "Assets/Scenes/V0_7_CloudSea.unity";
-        private const string SceneRevisionMarker = "Cloud Sea Scene Revision 13";
+        private const string SceneRevisionMarker = "Cloud Sea Scene Revision 16";
         private const string VolumeProfilePath = "Assets/SkyCircuit/Art/Volumes/SC_URPVolumetricCloudsProfile.asset";
         private const string CloudsMaterialPath = "Assets/VolumetricClouds/VolumetricClouds.mat";
         private const string VolumeObjectName = "URP Volumetric Clouds Volume";
-        private const string AutoSetupSessionKey = "SkyCircuit.V07.URPVolumetricClouds.AutoSetupQueued.v6";
+        private const string AutoSetupSessionKey = "SkyCircuit.V07.URPVolumetricClouds.AutoSetupQueued.v9";
 
         private static readonly string[] RendererPaths =
         {

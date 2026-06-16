@@ -32,14 +32,23 @@ Material:
     - _Alpha: 0.86
     - _BandSlant: 0.18
     - _BandStretch: 1
-    - _CloudCoverage: 0.5
-    - _CloudFeather: 0.24
+    - _CenterLowering: 20
+    - _CenterThinRadius: 950
+    - _CenterThinness: 0.38
+    - _CloudCoverage: 0.52
+    - _CloudFeather: 0.25
     - _DetailScale: 0.85
-    - _DistanceFogEnd: 5200
-    - _DistanceFogStart: 1600
-    - _RadialFadeEnd: 3450
-    - _RadialFadeStart: 2400
-    - _WorldTiling: 0.00016
+    - _DistanceFogEnd: 7600
+    - _DistanceFogStart: 2200
+    - _EdgeDensityBoost: 0.3
+    - _EdgeLift: 72
+    - _EdgeOpacityBoost: 0.35
+    - _EdgeThickEnd: 6600
+    - _EdgeThickStart: 2400
+    - _RadialFadeEnd: 7600
+    - _RadialFadeStart: 6500
+    - _SurfaceLift: 24
+    - _WorldTiling: 0.00013
     m_Colors:
     - _BaseColor: {r: 0.93, g: 0.96, b: 0.96, a: 1}
     - _FogColor: {r: 0.58, g: 0.72, b: 0.86, a: 1}

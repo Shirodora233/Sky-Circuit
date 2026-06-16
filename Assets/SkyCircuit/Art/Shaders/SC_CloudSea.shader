@@ -14,6 +14,15 @@ Shader "SkyCircuit/Cloud Sea"
         _DetailScale ("Detail Scale", Float) = 0.85
         _CloudCoverage ("Cloud Coverage", Range(0, 1)) = 0.5
         _CloudFeather ("Cloud Feather", Range(0.01, 0.5)) = 0.24
+        _CenterThinRadius ("Center Thin Radius", Float) = 950
+        _EdgeThickStart ("Edge Thick Start", Float) = 1250
+        _EdgeThickEnd ("Edge Thick End", Float) = 3500
+        _CenterThinness ("Center Thinness", Range(0, 1)) = 0.38
+        _EdgeDensityBoost ("Edge Density Boost", Range(0, 1)) = 0.3
+        _EdgeOpacityBoost ("Edge Opacity Boost", Range(0, 1)) = 0.35
+        _SurfaceLift ("Cloud Surface Lift", Float) = 24
+        _EdgeLift ("Edge Cloud Lift", Float) = 72
+        _CenterLowering ("Center Cloud Lowering", Float) = 20
         _DistanceFogStart ("Distance Fog Start", Float) = 1600
         _DistanceFogEnd ("Distance Fog End", Float) = 5200
         _RadialFadeStart ("Radial Fade Start", Float) = 2400
@@ -72,6 +81,15 @@ Shader "SkyCircuit/Cloud Sea"
                 float _DetailScale;
                 float _CloudCoverage;
                 float _CloudFeather;
+                float _CenterThinRadius;
+                float _EdgeThickStart;
+                float _EdgeThickEnd;
+                float _CenterThinness;
+                float _EdgeDensityBoost;
+                float _EdgeOpacityBoost;
+                float _SurfaceLift;
+                float _EdgeLift;
+                float _CenterLowering;
                 float _DistanceFogStart;
                 float _DistanceFogEnd;
                 float _RadialFadeStart;
@@ -82,39 +100,62 @@ Shader "SkyCircuit/Cloud Sea"
             Varyings Vert(Attributes input)
             {
                 Varyings output;
-                VertexPositionInputs positions = GetVertexPositionInputs(input.positionOS.xyz);
-                output.positionCS = positions.positionCS;
-                output.positionWS = positions.positionWS;
+                float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
+                float radius = length(positionWS.xz);
+                float edgeMass = smoothstep(_EdgeThickStart, _EdgeThickEnd, radius);
+                float centerThin = 1.0 - smoothstep(_CenterThinRadius, _EdgeThickStart, radius);
+
+                float2 shapeUv = positionWS.xz * (_WorldTiling * 0.72) + _ScrollOffset.xy * 0.35;
+                half3 shapeSample = SAMPLE_TEXTURE2D_LOD(_CloudTex, sampler_CloudTex, shapeUv, 0).rgb;
+                half shape = smoothstep(0.28, 0.86, dot(shapeSample, half3(0.36, 0.48, 0.16)));
+                positionWS.y += shape * _SurfaceLift + edgeMass * _EdgeLift - centerThin * _CenterLowering;
+
+                output.positionCS = TransformWorldToHClip(positionWS);
+                output.positionWS = positionWS;
                 return output;
             }
 
             half4 Frag(Varyings input) : SV_Target
             {
                 float2 worldUv = input.positionWS.xz * _WorldTiling;
+                float radius = length(input.positionWS.xz);
+                half edgeMass = smoothstep(_EdgeThickStart, _EdgeThickEnd, radius);
+                half centerThin = 1.0 - smoothstep(_CenterThinRadius, _EdgeThickStart, radius);
+
                 float2 paintedUv = float2(
                     worldUv.x * max(0.05, _BandStretch) + worldUv.y * _BandSlant,
                     worldUv.y * max(0.05, _DetailScale)) + _ScrollOffset.xy;
+                float2 detailUv = paintedUv * 2.15 + _ScrollOffset.zw;
 
                 half3 painted = SAMPLE_TEXTURE2D(_CloudTex, sampler_CloudTex, paintedUv).rgb;
+                half3 detail = SAMPLE_TEXTURE2D(_CloudTex, sampler_CloudTex, detailUv).rgb;
                 half luminance = dot(painted, half3(0.299, 0.587, 0.114));
-                half whiteness = min(painted.r, min(painted.g, painted.b));
-                half rawCloud = saturate(luminance * 0.78 + whiteness * 0.3);
-                half thinCloud = smoothstep(_CloudCoverage - _CloudFeather * 1.1, _CloudCoverage, rawCloud);
-                half cloudCore = smoothstep(_CloudCoverage, _CloudCoverage + _CloudFeather, rawCloud);
-                half highlight = smoothstep(_CloudCoverage + _CloudFeather * 0.35, 1.0, rawCloud);
+                half detailShape = dot(detail, half3(0.2, 0.62, 0.18));
+                half whiteness = min(max(painted.r, detail.r), min(max(painted.g, detail.g), max(painted.b, detail.b)));
+                half rawCloud = saturate(luminance * 0.68 + detailShape * 0.22 + whiteness * 0.22);
+                rawCloud = saturate(rawCloud - centerThin * (_CenterThinness * 0.34) + edgeMass * (_EdgeDensityBoost * 0.55));
+
+                half radialCoverage = saturate(_CloudCoverage + centerThin * _CenterThinness - edgeMass * _EdgeDensityBoost);
+                half thinCloud = smoothstep(radialCoverage - _CloudFeather * 1.15, radialCoverage, rawCloud);
+                half cloudCore = smoothstep(radialCoverage, radialCoverage + _CloudFeather, rawCloud);
+                half highlight = smoothstep(radialCoverage + _CloudFeather * 0.3, 1.0, rawCloud);
 
                 half3 skyColor = lerp(_VoidColor.rgb, painted, 0.72);
                 half3 thinColor = lerp(_ThinCloudColor.rgb, painted, 0.58);
                 half3 coreColor = lerp(_BaseColor.rgb, _HighlightColor.rgb, highlight * 0.5);
-                half3 color = lerp(skyColor, thinColor, thinCloud * 0.68);
-                color = lerp(color, coreColor, cloudCore * 0.78);
+                half3 color = lerp(skyColor, thinColor, thinCloud * lerp(0.46, 0.82, edgeMass));
+                color = lerp(color, coreColor, cloudCore * lerp(0.52, 0.95, edgeMass));
+                color = lerp(color, _HighlightColor.rgb, highlight * edgeMass * 0.28);
+
+                half thickness = saturate(thinCloud * 0.26 + cloudCore * 0.72 + edgeMass * _EdgeOpacityBoost - centerThin * 0.22);
                 float cameraDistance = distance(GetCameraPositionWS(), input.positionWS);
                 half fog = smoothstep(0.0, 1.0, saturate((cameraDistance - _DistanceFogStart) / max(1.0, _DistanceFogEnd - _DistanceFogStart)));
-                half radialFog = smoothstep(_RadialFadeStart, _RadialFadeEnd, length(input.positionWS.xz));
-                half edgeAlpha = 1.0 - radialFog;
+                half radialFog = smoothstep(_RadialFadeStart, _RadialFadeEnd, radius);
+                half outerFade = 1.0 - radialFog;
+                half alpha = saturate((0.18 + thickness * 0.82) * lerp(0.56, 1.0, edgeMass) * outerFade);
 
                 color = lerp(color, _FogColor.rgb, saturate(max(fog * 0.35, radialFog * 0.55)));
-                return half4(color, edgeAlpha);
+                return half4(color, alpha);
             }
             ENDHLSL
         }

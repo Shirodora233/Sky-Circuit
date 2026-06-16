@@ -1,6 +1,7 @@
 using System.IO;
 using SkyCircuit.Presentation;
 using UnityEditor;
+using UnityEditor.Callbacks;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -18,8 +19,8 @@ namespace SkyCircuit.EditorTools
         private const string FogRingMeshPath = "Assets/SkyCircuit/Art/SC_HeightFogRing.asset";
         private const string SkyCloudDomeMeshPath = "Assets/SkyCircuit/Art/SC_SkyCloudDome.asset";
         private const string SkyboxMaterialPath = MaterialsFolder + "/SC_CloudSeaSkybox.mat";
-        private const string SceneRevisionMarker = "Cloud Sea Scene Revision 13";
-        private const string AutoBuildSessionKey = "SkyCircuit.V07.CloudSea.AutoBuildQueued.v13";
+        private const string SceneRevisionMarker = "Cloud Sea Scene Revision 16";
+        private const string AutoBuildSessionKey = "SkyCircuit.V07.CloudSea.AutoBuildQueued.v16";
 
         static SkyCircuitCloudSeaSceneBuilder()
         {
@@ -31,6 +32,18 @@ namespace SkyCircuit.EditorTools
             EditorApplication.delayCall += TryAutoBuildCloudSeaScene;
         }
 
+        [DidReloadScripts]
+        private static void QueueCloudSeaRefreshAfterReload()
+        {
+            if (Application.isBatchMode)
+            {
+                return;
+            }
+
+            SessionState.SetBool(AutoBuildSessionKey, false);
+            EditorApplication.delayCall += TryAutoBuildCloudSeaScene;
+        }
+
         [MenuItem("Sky Circuit/Build V0.7 Cloud Sea Scene")]
         public static void BuildCloudSeaScene()
         {
@@ -38,6 +51,7 @@ namespace SkyCircuit.EditorTools
 
             Texture2D cloudTexture = EnsureCloudNoiseTexture();
             Material cloudSeaMaterial = CreateCloudSeaMaterial(cloudTexture);
+            Material horizonBlendMaterial = CreateHeightFogMaterial(cloudTexture);
 
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             scene.name = "V0_7_CloudSea";
@@ -48,6 +62,7 @@ namespace SkyCircuit.EditorTools
             CreateRevisionMarker(environmentRoot.transform);
             ConfigureLightingAndFog();
             CreateCloudSeaSurface(environmentRoot.transform, cloudSeaMaterial);
+            CreateHeightFogCurtain(environmentRoot.transform, horizonBlendMaterial);
             CreatePreviewCamera(previewRoot.transform);
 
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -103,7 +118,22 @@ namespace SkyCircuit.EditorTools
             string sceneText = File.ReadAllText(ScenePath);
             return sceneText.Contains(SceneRevisionMarker)
                 && sceneText.Contains("Cloud Sea Surface")
+                && sceneText.Contains("Horizon Blend Curtain")
+                && IsCloudSeaMeshCurrent()
+                && IsHorizonBlendMeshCurrent()
                 && !sceneText.Contains("Low Height Fog Sheet");
+        }
+
+        private static bool IsCloudSeaMeshCurrent()
+        {
+            Mesh mesh = AssetDatabase.LoadAssetAtPath<Mesh>(CloudSeaMeshPath);
+            return mesh != null && mesh.bounds.extents.x > 6800f && mesh.bounds.extents.z > 6800f;
+        }
+
+        private static bool IsHorizonBlendMeshCurrent()
+        {
+            Mesh mesh = AssetDatabase.LoadAssetAtPath<Mesh>(FogRingMeshPath);
+            return mesh != null && mesh.bounds.extents.x > 7050f && mesh.bounds.size.y > 740f;
         }
 
         private static void EnsureFolders()
@@ -247,16 +277,25 @@ namespace SkyCircuit.EditorTools
             material.SetColor("_BaseColor", new Color(0.93f, 0.96f, 0.96f, 1f));
             material.SetColor("_HighlightColor", new Color(1f, 1f, 0.98f, 1f));
             material.SetColor("_FogColor", new Color(0.58f, 0.72f, 0.86f, 1f));
-            material.SetFloat("_WorldTiling", 0.00016f);
+            material.SetFloat("_WorldTiling", 0.00013f);
             material.SetFloat("_BandStretch", 1f);
             material.SetFloat("_BandSlant", 0.18f);
             material.SetFloat("_DetailScale", 0.85f);
-            material.SetFloat("_CloudCoverage", 0.5f);
-            material.SetFloat("_CloudFeather", 0.24f);
-            material.SetFloat("_DistanceFogStart", 1600f);
-            material.SetFloat("_DistanceFogEnd", 5200f);
-            material.SetFloat("_RadialFadeStart", 2400f);
-            material.SetFloat("_RadialFadeEnd", 3450f);
+            material.SetFloat("_CloudCoverage", 0.52f);
+            material.SetFloat("_CloudFeather", 0.25f);
+            material.SetFloat("_CenterThinRadius", 950f);
+            material.SetFloat("_EdgeThickStart", 2400f);
+            material.SetFloat("_EdgeThickEnd", 6600f);
+            material.SetFloat("_CenterThinness", 0.38f);
+            material.SetFloat("_EdgeDensityBoost", 0.3f);
+            material.SetFloat("_EdgeOpacityBoost", 0.35f);
+            material.SetFloat("_SurfaceLift", 24f);
+            material.SetFloat("_EdgeLift", 72f);
+            material.SetFloat("_CenterLowering", 20f);
+            material.SetFloat("_DistanceFogStart", 2200f);
+            material.SetFloat("_DistanceFogEnd", 7600f);
+            material.SetFloat("_RadialFadeStart", 6500f);
+            material.SetFloat("_RadialFadeEnd", 7600f);
             EditorUtility.SetDirty(material);
             return material;
         }
@@ -282,14 +321,16 @@ namespace SkyCircuit.EditorTools
         {
             Material material = CreateMaterial("SC_HeightFog.mat", "SkyCircuit/Height Fog");
             material.SetTexture("_NoiseTex", cloudTexture);
-            material.SetColor("_FogColor", new Color(0.58f, 0.72f, 0.86f, 1f));
-            material.SetFloat("_Alpha", 0.12f);
-            material.SetFloat("_NoiseStrength", 0.18f);
-            material.SetFloat("_FogBottom", -60f);
-            material.SetFloat("_FogTop", 170f);
-            material.SetFloat("_DistanceFadeStart", 1500f);
-            material.SetFloat("_DistanceFadeEnd", 4800f);
-            material.SetFloat("_WorldTiling", 0.0025f);
+            material.SetColor("_CloudColor", new Color(0.78f, 0.88f, 0.92f, 1f));
+            material.SetColor("_HorizonColor", new Color(0.62f, 0.78f, 0.9f, 1f));
+            material.SetColor("_SkyColor", new Color(0.47f, 0.66f, 0.86f, 1f));
+            material.SetFloat("_Alpha", 0.58f);
+            material.SetFloat("_NoiseStrength", 0.22f);
+            material.SetFloat("_HorizonBottom", -150f);
+            material.SetFloat("_HorizonTop", 620f);
+            material.SetFloat("_DistanceFadeStart", 1400f);
+            material.SetFloat("_DistanceFadeEnd", 6900f);
+            material.SetFloat("_WorldTiling", 0.001f);
             EditorUtility.SetDirty(material);
             return material;
         }
@@ -509,7 +550,7 @@ namespace SkyCircuit.EditorTools
             }
 
             const int segments = 220;
-            const float size = 7200f;
+            const float size = 14000f;
             const float halfSize = size * 0.5f;
             Vector3[] vertices = new Vector3[(segments + 1) * (segments + 1)];
             Vector2[] uv = new Vector2[vertices.Length];
@@ -525,7 +566,15 @@ namespace SkyCircuit.EditorTools
                     float worldZ = Mathf.Lerp(-halfSize, halfSize, v);
                     float broad = FractalNoise(u + 13.37f, v - 8.51f, 3.2f, 5, 0.52f);
                     float detail = FractalNoise(u - 2.4f, v + 5.8f, 10f, 4, 0.46f);
-                    float height = Mathf.SmoothStep(0.1f, 0.9f, broad) * 32f + detail * 7f - 18f;
+                    float radius = Mathf.Sqrt(worldX * worldX + worldZ * worldZ);
+                    float radius01 = Mathf.Clamp01(radius / halfSize);
+                    float centerThin = 1f - Mathf.SmoothStep(0.16f, 0.44f, radius01);
+                    float edgeMass = Mathf.SmoothStep(0.36f, 1f, radius01);
+                    float height = Mathf.SmoothStep(0.1f, 0.9f, broad) * 30f
+                        + detail * 7f
+                        + edgeMass * 46f
+                        - centerThin * 16f
+                        - 20f;
 
                     int index = z * (segments + 1) + x;
                     vertices[index] = new Vector3(worldX, height, worldZ);
@@ -566,7 +615,7 @@ namespace SkyCircuit.EditorTools
         private static void CreateHeightFogCurtain(Transform parent, Material material)
         {
             Mesh mesh = EnsureFogRingMesh();
-            GameObject curtain = new GameObject("Height Fog Curtain");
+            GameObject curtain = new GameObject("Horizon Blend Curtain");
             curtain.transform.SetParent(parent);
 
             MeshFilter filter = curtain.AddComponent<MeshFilter>();
@@ -574,15 +623,17 @@ namespace SkyCircuit.EditorTools
 
             MeshRenderer renderer = curtain.AddComponent<MeshRenderer>();
             renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
 
             CloudSeaMaterialScroller scroller = curtain.AddComponent<CloudSeaMaterialScroller>();
-            scroller.Configure(renderer, new Vector2(0.0015f, 0.0006f), new Vector2(-0.0008f, 0.0012f));
+            scroller.Configure(renderer, new Vector2(0.00055f, 0.00018f), new Vector2(-0.00022f, 0.00034f));
         }
 
         private static Mesh EnsureFogRingMesh()
         {
             Mesh existingMesh = AssetDatabase.LoadAssetAtPath<Mesh>(FogRingMeshPath);
-            if (existingMesh != null && existingMesh.bounds.size.y > 190f && existingMesh.bounds.extents.x > 3200f)
+            if (existingMesh != null && existingMesh.bounds.size.y > 740f && existingMesh.bounds.extents.x > 7050f)
             {
                 return existingMesh;
             }
@@ -592,9 +643,9 @@ namespace SkyCircuit.EditorTools
                 AssetDatabase.DeleteAsset(FogRingMeshPath);
             }
 
-            const int segments = 160;
-            const float radius = 3500f;
-            const float height = 220f;
+            const int segments = 192;
+            const float radius = 7200f;
+            const float height = 760f;
             Vector3[] vertices = new Vector3[(segments + 1) * 2];
             Vector2[] uv = new Vector2[vertices.Length];
             int[] triangles = new int[segments * 6];
@@ -607,7 +658,7 @@ namespace SkyCircuit.EditorTools
                 float z = Mathf.Sin(angle) * radius;
                 int vertexIndex = i * 2;
 
-                vertices[vertexIndex] = new Vector3(x, -50f, z);
+                vertices[vertexIndex] = new Vector3(x, -160f, z);
                 vertices[vertexIndex + 1] = new Vector3(x, height, z);
                 uv[vertexIndex] = new Vector2(t, 0f);
                 uv[vertexIndex + 1] = new Vector2(t, 1f);
