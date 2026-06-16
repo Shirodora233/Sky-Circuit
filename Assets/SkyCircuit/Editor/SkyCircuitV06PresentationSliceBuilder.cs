@@ -23,6 +23,7 @@ namespace SkyCircuit.EditorTools
         private const string FlyingAnimationPath = "Assets/Animation/Flying.fbx";
         private const string DemoControllerPath = "Assets/SkyCircuit/Art/Animations/SC_DemoFlying.controller";
         private const string DemoMaterialsFolder = "Assets/SkyCircuit/Art/Materials";
+        private const string BackHitTexturePath = "Assets/SkyCircuit/Art/Textures/SC_BackHitTriangle.png";
         private const float CharacterVisualScale = 3.2f;
         private const float CharacterVisualPitch = -90f;
         private const float CharacterVisualMovingPitch = -25f;
@@ -78,6 +79,7 @@ namespace SkyCircuit.EditorTools
             SkyCircuitCharacterVisualSceneUtility.EnsureCharacterVisual(opponent.gameObject, "AI Character Visual");
             ConfigureMovementDirectionOffset(player.Controller);
             ConfigureMovementDirectionOffset(opponent.Controller);
+            ConfigureBackHitFeedbacks();
             ConfigurePresentationCamera();
             if (hud != null)
             {
@@ -408,6 +410,16 @@ namespace SkyCircuit.EditorTools
             body.transform.localPosition = new Vector3(0f, -0.25f, 0f);
             body.transform.localScale = new Vector3(0.7f, 1.5f, 0.7f);
             UnityEngine.Object.DestroyImmediate(body.GetComponent<Collider>());
+        }
+
+        private static void ConfigureBackHitFeedbacks()
+        {
+            Texture2D backHitTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(BackHitTexturePath);
+            foreach (BackHitFeedback feedback in UnityEngine.Object.FindObjectsByType<BackHitFeedback>(FindObjectsInactive.Exclude))
+            {
+                feedback.Configure(feedback.GetComponent<Renderer>(), feedback.GetComponent<Light>(), backHitTexture);
+                EditorUtility.SetDirty(feedback);
+            }
         }
 
         private static void CreateContrail(GameObject player, SkyCircuitFlightController controller)

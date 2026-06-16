@@ -13,6 +13,7 @@ Material:
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - _CLOUDS_AMBIENT_PROBE
+  - _LOW_RESOLUTION_CLOUDS
   - _OUTPUT_CLOUDS_DEPTH
   - _PERCEPTUAL_BLENDING
   m_InvalidKeywords:
@@ -113,7 +114,7 @@ Material:
     - _AlphaClip: 0
     - _AlphaToMask: 0
     - _AltitudeDistortion: 0.0125
-    - _AmbientProbeDimmer: 1.35
+    - _AmbientProbeDimmer: 2
     - _AtmosphereThickness: 1
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
@@ -121,7 +122,7 @@ Material:
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
     - _CloudMinimumLight: 0.72
-    - _CloudNearPlane: 856.40027
+    - _CloudNearPlane: 466.2271
     - _Cull: 2
     - _Cutoff: 0.5
     - _DensityMultiplier: 0.32000002
@@ -150,13 +151,13 @@ Material:
     - _Metallic: 0
     - _MicroErosionFactor: 0.5
     - _MicroErosionScale: 200
-    - _MultiScattering: 0.22100002
+    - _MultiScattering: 0.050000012
     - _NormalizationFactor: 189011.11
     - _NumLightSteps: 4
     - _NumPrimarySteps: 56
     - _OcclusionStrength: 1
     - _Parallax: 0.005
-    - _PowderEffectIntensity: 0.55
+    - _PowderEffectIntensity: 0
     - _QueueOffset: 0
     - _ReceiveShadows: 1
     - _Seed: 0
@@ -170,11 +171,11 @@ Material:
     - _SrcBlendAlpha: 1
     - _StepSize: 0.4
     - _SunDisk: 2
-    - _SunLightDimmer: 1.25
+    - _SunLightDimmer: 2
     - _SunSize: 0.04
     - _SunSizeConvergence: 5
     - _Surface: 0
-    - _VerticalErosionWindDisplacement: -1.7953328
+    - _VerticalErosionWindDisplacement: -75.4803
     - _VerticalShapeNoiseOffset: 0
     - _VerticalShapeWindDisplacement: 0
     - _WorkflowMode: 1
@@ -185,12 +186,12 @@ Material:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _GroundColor: {r: 0.36899996, g: 0.34899998, b: 0.34099993, a: 1}
-    - _ScatteringTint: {r: 0.98875, g: 0.97375, b: 0.955, a: 0.25}
+    - _ScatteringTint: {r: 0.32500005, g: 0.32500005, b: 0.34000003, a: 0.25}
     - _ShapeNoiseOffset: {r: 0, g: 0, b: 0, a: 0}
     - _SkyTint: {r: 0.5, g: 0.5, b: 0.5, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
     - _WindDirection: {r: 0.6427875, g: 0.76604456, b: 0, a: 0}
-    - _WindVector: {r: 69.24107, g: 82.518265, b: 0, a: 0}
+    - _WindVector: {r: 2911.0674, g: 3469.2764, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
 --- !u!114 &4204168956660823475

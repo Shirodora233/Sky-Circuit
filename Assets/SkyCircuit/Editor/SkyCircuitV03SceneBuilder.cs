@@ -14,6 +14,7 @@ namespace SkyCircuit.EditorTools
         private const string SourceScenePath = "Assets/Scenes/V0_2_MatchPrototype.unity";
         private const string ScenePath = "Assets/Scenes/V0_3_DogfightPrototype.unity";
         private const string MaterialsFolder = "Assets/SkyCircuit/Art/Materials";
+        private const string BackHitTexturePath = "Assets/SkyCircuit/Art/Textures/SC_BackHitTriangle.png";
 
         [MenuItem("Sky Circuit/Build V0.3 Dogfight Prototype Scene")]
         public static void BuildDogfightPrototypeScene()
@@ -30,6 +31,7 @@ namespace SkyCircuit.EditorTools
                 new Color(1f, 0.82f, 0.16f, 0.32f),
                 new Color(1f, 0.45f, 0.08f),
                 true);
+            Texture2D backHitTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(BackHitTexturePath);
 
             Scene scene = EditorSceneManager.OpenScene(SourceScenePath, OpenSceneMode.Single);
 
@@ -49,8 +51,8 @@ namespace SkyCircuit.EditorTools
             SkyCircuitCharacterVisualSceneUtility.EnsureCharacterVisual(player.gameObject, "Player Character Visual");
             SkyCircuitCharacterVisualSceneUtility.EnsureCharacterVisual(opponent.gameObject, "AI Character Visual");
 
-            BackHitFeedback playerFeedback = CreateBackHitFeedback(player.Body, pointFieldMaterial);
-            BackHitFeedback opponentFeedback = CreateBackHitFeedback(opponent.Body, pointFieldMaterial);
+            BackHitFeedback playerFeedback = CreateBackHitFeedback(player.Body, pointFieldMaterial, backHitTexture);
+            BackHitFeedback opponentFeedback = CreateBackHitFeedback(opponent.Body, pointFieldMaterial, backHitTexture);
 
             GameObject dogfightObject = new GameObject("Dogfight Controller");
             dogfightObject.transform.SetParent(matchRoot);
@@ -82,6 +84,7 @@ namespace SkyCircuit.EditorTools
             CreateFolder("Assets", "SkyCircuit");
             CreateFolder("Assets/SkyCircuit", "Art");
             CreateFolder("Assets/SkyCircuit/Art", "Materials");
+            CreateFolder("Assets/SkyCircuit/Art", "Textures");
             CreateFolder("Assets/SkyCircuit/Runtime", "Combat");
         }
 
@@ -130,7 +133,7 @@ namespace SkyCircuit.EditorTools
             return material;
         }
 
-        private static BackHitFeedback CreateBackHitFeedback(Transform competitor, Material material)
+        private static BackHitFeedback CreateBackHitFeedback(Transform competitor, Material material, Texture2D backHitTexture)
         {
             GameObject feedbackObject = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             feedbackObject.name = "Back Hit Feedback";
@@ -155,7 +158,7 @@ namespace SkyCircuit.EditorTools
             light.color = new Color(1f, 0.82f, 0.16f);
 
             BackHitFeedback feedback = feedbackObject.AddComponent<BackHitFeedback>();
-            feedback.Configure(renderer, light);
+            feedback.Configure(renderer, light, backHitTexture);
             return feedback;
         }
 
