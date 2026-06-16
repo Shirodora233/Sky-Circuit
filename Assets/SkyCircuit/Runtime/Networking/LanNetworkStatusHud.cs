@@ -97,7 +97,7 @@ namespace SkyCircuit.Networking
         {
             if (bootstrap == null)
             {
-                bootstrap = FindFirstObjectByType<LanNetworkBootstrap>(FindObjectsInactive.Include);
+                bootstrap = FindAnyObjectByType<LanNetworkBootstrap>(FindObjectsInactive.Include);
             }
 
             if (settings == null && bootstrap != null)

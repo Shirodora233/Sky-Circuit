@@ -82,9 +82,8 @@ namespace SkyCircuit.Presentation
             MarkSegmentsDirty();
         }
 
-        protected override void OnValidate()
+        private void OnValidate()
         {
-            base.OnValidate();
             MarkSegmentsDirty();
         }
 

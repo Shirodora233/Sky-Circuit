@@ -11,15 +11,23 @@ namespace SkyCircuit.Networking
         private const string LocalhostAddress = "127.0.0.1";
         private const ushort FallbackPort = 7777;
         private const float FallbackConnectTimeoutSeconds = 10f;
+        private static readonly Vector3[] DefaultSpawnPositions =
+        {
+            new Vector3(-8f, 18f, -35f),
+            new Vector3(8f, 18f, -35f),
+        };
 
-        [SerializeField] private LanConnectionSettings settings;
+        [SerializeField] private LanConnectionSettings settings = null;
         [SerializeField] private NetworkManager networkManager;
         [SerializeField] private UnityTransport transport;
         [SerializeField] private string clientAddressOverride;
         [SerializeField] private bool findSceneNetworkManager = true;
+        [SerializeField] private bool createPlayerObjectWhenPrefabExists = true;
+        [SerializeField] private Vector3[] playerSpawnPositions = DefaultSpawnPositions;
 
         private string statusText = "Offline";
         private bool callbacksRegistered;
+        private bool approvalCallbackRegistered;
 
         public LanConnectionSettings Settings => settings;
         public string ClientAddress => ResolveClientAddress();
@@ -166,11 +174,12 @@ namespace SkyCircuit.Networking
 
             if (networkManager == null && findSceneNetworkManager)
             {
-                networkManager = FindFirstObjectByType<NetworkManager>(FindObjectsInactive.Include);
+                networkManager = FindAnyObjectByType<NetworkManager>(FindObjectsInactive.Include);
             }
 
             if (transport == null && networkManager != null)
             {
+                EnsureNetworkConfig();
                 transport = networkManager.NetworkConfig.NetworkTransport as UnityTransport;
                 if (transport == null)
                 {
@@ -186,6 +195,15 @@ namespace SkyCircuit.Networking
                 return;
             }
 
+            EnsureNetworkConfig();
+            networkManager.NetworkConfig.ConnectionApproval = true;
+            if (transport != null)
+            {
+                networkManager.NetworkConfig.NetworkTransport = transport;
+            }
+
+            networkManager.ConnectionApprovalCallback = HandleConnectionApproval;
+            approvalCallbackRegistered = true;
             networkManager.OnClientConnectedCallback += HandleClientConnected;
             networkManager.OnClientDisconnectCallback += HandleClientDisconnected;
             callbacksRegistered = true;
@@ -200,7 +218,40 @@ namespace SkyCircuit.Networking
 
             networkManager.OnClientConnectedCallback -= HandleClientConnected;
             networkManager.OnClientDisconnectCallback -= HandleClientDisconnected;
+            if (approvalCallbackRegistered)
+            {
+                networkManager.ConnectionApprovalCallback = null;
+                approvalCallbackRegistered = false;
+            }
+
             callbacksRegistered = false;
+        }
+
+        private void EnsureNetworkConfig()
+        {
+            if (networkManager != null && networkManager.NetworkConfig == null)
+            {
+                networkManager.NetworkConfig = new NetworkConfig();
+            }
+        }
+
+        private void HandleConnectionApproval(
+            NetworkManager.ConnectionApprovalRequest request,
+            NetworkManager.ConnectionApprovalResponse response)
+        {
+            int slotIndex = ConnectedClientCount;
+            bool hasRoom = slotIndex < MaxPlayers;
+            bool hasPlayerPrefab = networkManager != null
+                && networkManager.NetworkConfig != null
+                && networkManager.NetworkConfig.PlayerPrefab != null;
+            bool shouldCreatePlayer = hasRoom && createPlayerObjectWhenPrefabExists && hasPlayerPrefab;
+
+            response.Approved = hasRoom;
+            response.CreatePlayerObject = shouldCreatePlayer;
+            response.Position = shouldCreatePlayer ? ResolveSpawnPosition(slotIndex) : null;
+            response.Rotation = shouldCreatePlayer ? ResolveSpawnRotation(slotIndex) : null;
+            response.Pending = false;
+            response.Reason = hasRoom ? string.Empty : $"Session is full ({MaxPlayers} players)";
         }
 
         private void HandleClientConnected(ulong clientId)
@@ -226,6 +277,23 @@ namespace SkyCircuit.Networking
         private float ResolveConnectTimeoutSeconds()
         {
             return settings != null ? settings.ConnectTimeoutSeconds : FallbackConnectTimeoutSeconds;
+        }
+
+        private int MaxPlayers => settings != null ? settings.MaxPlayers : 2;
+
+        private Vector3 ResolveSpawnPosition(int slotIndex)
+        {
+            if (playerSpawnPositions == null || playerSpawnPositions.Length == 0)
+            {
+                return DefaultSpawnPositions[Mathf.Clamp(slotIndex, 0, DefaultSpawnPositions.Length - 1)];
+            }
+
+            return playerSpawnPositions[Mathf.Clamp(slotIndex, 0, playerSpawnPositions.Length - 1)];
+        }
+
+        private Quaternion ResolveSpawnRotation(int slotIndex)
+        {
+            return Quaternion.Euler(0f, slotIndex == 0 ? 18f : -18f, 0f);
         }
 
         private static string NormalizeAddress(string address)
