@@ -18,6 +18,7 @@ namespace SkyCircuit.EditorTools
 
         private const float CharacterVisualScale = 3.2f;
         private const float CharacterVisualPitch = -18f;
+        private const string VisualModelSuffix = " Model";
 
         private static readonly Vector3 CharacterVisualOffset = new Vector3(0f, -2.8f, 0f);
 
@@ -77,22 +78,7 @@ namespace SkyCircuit.EditorTools
             HidePrototypeRenderer(flightRoot);
             RemoveForwardMarker(flightRoot.transform);
 
-            Transform existingVisual = flightRoot.transform.Find(visualName);
-            if (existingVisual == null)
-            {
-                existingVisual = FindAnyCharacterVisual(flightRoot.transform);
-            }
-
-            if (existingVisual == null)
-            {
-                CreateCharacterVisual(flightRoot.transform, visualName, animatorController);
-            }
-            else
-            {
-                existingVisual.name = visualName;
-                ConfigureVisualTransform(existingVisual);
-                ConfigureAnimator(existingVisual.gameObject, animatorController);
-            }
+            EnsureVisualPivot(flightRoot.transform, visualName, animatorController);
 
             SkyCircuitFlightController controller = flightRoot.GetComponent<SkyCircuitFlightController>();
             Rigidbody body = flightRoot.GetComponent<Rigidbody>();
@@ -100,28 +86,95 @@ namespace SkyCircuit.EditorTools
             EnsureWindController(flightRoot, controller, body);
         }
 
-        private static void CreateCharacterVisual(Transform parent, string visualName, RuntimeAnimatorController animatorController)
+        private static Transform EnsureVisualPivot(
+            Transform parent,
+            string visualName,
+            RuntimeAnimatorController animatorController)
         {
+            Transform visualPivot = parent.Find(visualName) ?? FindAnyCharacterVisual(parent);
+            if (visualPivot == null)
+            {
+                visualPivot = CreateCharacterVisual(parent, visualName, animatorController);
+            }
+            else if (NeedsPivotWrapper(visualPivot))
+            {
+                visualPivot = WrapVisualInPivot(parent, visualPivot, visualName);
+                ConfigureAnimator(visualPivot.gameObject, animatorController);
+            }
+            else
+            {
+                visualPivot.name = visualName;
+                ConfigureVisualPivotTransform(visualPivot);
+
+                Transform model = FindVisualModel(visualPivot);
+                if (model != null)
+                {
+                    ConfigureVisualModelTransform(model);
+                }
+
+                ConfigureAnimator(visualPivot.gameObject, animatorController);
+            }
+
+            return visualPivot;
+        }
+
+        private static Transform CreateCharacterVisual(
+            Transform parent,
+            string visualName,
+            RuntimeAnimatorController animatorController)
+        {
+            Transform pivot = CreateVisualPivot(parent, visualName);
             GameObject prefab = LoadFirstCharacterPrefab();
             if (prefab == null)
             {
                 Debug.LogWarning($"Sky Circuit could not find a character prefab under {ArtSearchFolder}.");
-                CreateFallbackVisual(parent, visualName);
-                return;
+                CreateFallbackVisual(pivot, visualName);
+                return pivot;
             }
 
             GameObject visual = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
-            visual.name = visualName;
-            visual.transform.SetParent(parent, false);
-            ConfigureVisualTransform(visual.transform);
+            visual.name = BuildModelName(visualName);
+            visual.transform.SetParent(pivot, false);
+            ConfigureVisualModelTransform(visual.transform);
             ConfigureAnimator(visual, animatorController);
+            return pivot;
         }
 
-        private static void ConfigureVisualTransform(Transform visual)
+        private static Transform CreateVisualPivot(Transform parent, string visualName)
         {
-            visual.localPosition = CharacterVisualOffset;
-            visual.localRotation = Quaternion.Euler(CharacterVisualPitch, 0f, 0f);
-            visual.localScale = Vector3.one * CharacterVisualScale;
+            GameObject pivotObject = new GameObject(visualName);
+            Transform pivot = pivotObject.transform;
+            pivot.SetParent(parent, false);
+            ConfigureVisualPivotTransform(pivot);
+            return pivot;
+        }
+
+        private static Transform WrapVisualInPivot(Transform parent, Transform model, string visualName)
+        {
+            int siblingIndex = model.GetSiblingIndex();
+            Transform pivot = CreateVisualPivot(parent, visualName);
+            pivot.SetSiblingIndex(siblingIndex);
+
+            model.name = BuildModelName(visualName);
+            model.SetParent(pivot, false);
+            ConfigureVisualModelTransform(model);
+            return pivot;
+        }
+
+        private static void ConfigureVisualPivotTransform(Transform pivot)
+        {
+            pivot.localPosition = Vector3.zero;
+            pivot.localRotation = Quaternion.Euler(CharacterVisualPitch, 0f, 0f);
+            pivot.localScale = Vector3.one;
+            EditorUtility.SetDirty(pivot);
+        }
+
+        private static void ConfigureVisualModelTransform(Transform model)
+        {
+            model.localPosition = CharacterVisualOffset;
+            model.localRotation = Quaternion.identity;
+            model.localScale = Vector3.one * CharacterVisualScale;
+            EditorUtility.SetDirty(model);
         }
 
         private static void ConfigureAnimator(GameObject visual, RuntimeAnimatorController animatorController)
@@ -239,6 +292,30 @@ namespace SkyCircuit.EditorTools
             return null;
         }
 
+        private static bool NeedsPivotWrapper(Transform visual)
+        {
+            return visual.GetComponent<Animator>() != null ||
+                visual.GetComponent<Renderer>() != null ||
+                PrefabUtility.GetCorrespondingObjectFromSource(visual.gameObject) != null;
+        }
+
+        private static Transform FindVisualModel(Transform visualPivot)
+        {
+            if (visualPivot.childCount > 0)
+            {
+                return visualPivot.GetChild(0);
+            }
+
+            return null;
+        }
+
+        private static string BuildModelName(string pivotName)
+        {
+            return pivotName.EndsWith(VisualModelSuffix, StringComparison.Ordinal)
+                ? pivotName
+                : pivotName + VisualModelSuffix;
+        }
+
         private static void HidePrototypeRenderer(GameObject flightRoot)
         {
             Renderer renderer = flightRoot.GetComponent<Renderer>();
@@ -262,7 +339,7 @@ namespace SkyCircuit.EditorTools
         {
             Material material = CreateFallbackMaterial();
             GameObject body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            body.name = visualName;
+            body.name = BuildModelName(visualName);
             body.transform.SetParent(parent, false);
             body.transform.localPosition = new Vector3(0f, -0.25f, 0f);
             body.transform.localScale = new Vector3(0.7f, 1.5f, 0.7f);

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using SkyCircuit.Flight;
 using UnityEngine;
@@ -60,7 +61,7 @@ namespace SkyCircuit.Presentation
         [SerializeField, Min(0.01f)] private float turnLegPoseSmoothing = 7f;
 
         [Header("Visual Turn Pose")]
-        [Tooltip("Neutral local rotation for the character visual root. Turn pose yaw and bank are applied on top of this value.")]
+        [Tooltip("Neutral local rotation for the character visual pivot. Turn pose yaw and bank are applied on top of this value.")]
         [SerializeField] private Vector3 visualBaseLocalEuler = new Vector3(-18f, 0f, 0f);
         [SerializeField] private float visualYawAngle = 8f;
         [Tooltip("Control yaw error, in degrees, needed to reach full visual yaw pose.")]
@@ -98,7 +99,10 @@ namespace SkyCircuit.Presentation
         [SerializeField] private float effectiveVisualBank;
         [SerializeField] private string status = "Not started";
 
-        private Transform visualRoot;
+        private const string CharacterVisualNameToken = "Character Visual";
+        private const string VisualModelSuffix = " Model";
+
+        private Transform visualPivot;
         private Transform leftUpperArm;
         private Transform rightUpperArm;
         private Transform leftLowerArm;
@@ -296,8 +300,64 @@ namespace SkyCircuit.Presentation
 
             if (animator != null)
             {
-                visualRoot = animator.transform;
+                Transform resolvedVisualPivot = ResolveVisualPivot(animator.transform);
+                if (visualPivot != resolvedVisualPivot)
+                {
+                    visualPivot = resolvedVisualPivot;
+                    visualBaseCaptured = false;
+                }
             }
+        }
+
+        private Transform ResolveVisualPivot(Transform animatorTransform)
+        {
+            if (animatorTransform == null)
+            {
+                return null;
+            }
+
+            Transform parent = animatorTransform.parent;
+            if (parent != null && IsVisualModelTransform(parent) &&
+                parent.parent != null && IsCharacterVisualTransform(parent.parent))
+            {
+                return parent.parent;
+            }
+
+            if (parent != null && parent != transform && IsCharacterVisualTransform(parent))
+            {
+                return parent;
+            }
+
+            if (parent == transform && IsCharacterVisualTransform(animatorTransform))
+            {
+                return WrapDirectVisualInPivot(animatorTransform);
+            }
+
+            return animatorTransform;
+        }
+
+        private Transform WrapDirectVisualInPivot(Transform model)
+        {
+            string pivotName = StripModelSuffix(model.name);
+            int siblingIndex = model.GetSiblingIndex();
+            Vector3 modelLocalPosition = model.localPosition;
+            Quaternion modelLocalRotation = model.localRotation;
+            Vector3 modelLocalScale = model.localScale;
+
+            GameObject pivotObject = new GameObject(pivotName);
+            Transform pivot = pivotObject.transform;
+            pivot.SetParent(transform, false);
+            pivot.SetSiblingIndex(siblingIndex);
+            pivot.localPosition = Vector3.zero;
+            pivot.localRotation = modelLocalRotation;
+            pivot.localScale = Vector3.one;
+
+            model.SetParent(pivot, false);
+            model.name = BuildModelName(pivotName);
+            model.localPosition = modelLocalPosition;
+            model.localRotation = Quaternion.identity;
+            model.localScale = modelLocalScale;
+            return pivot;
         }
 
         private void CacheBones()
@@ -436,12 +496,12 @@ namespace SkyCircuit.Presentation
 
         private void CaptureVisualBaseRotation(bool force = false)
         {
-            if (visualRoot == null && animator != null)
+            if (visualPivot == null && animator != null)
             {
-                visualRoot = animator.transform;
+                visualPivot = ResolveVisualPivot(animator.transform);
             }
 
-            if (visualRoot == null || (visualBaseCaptured && !force))
+            if (visualPivot == null || (visualBaseCaptured && !force))
             {
                 return;
             }
@@ -452,15 +512,15 @@ namespace SkyCircuit.Presentation
 
         private void RestoreVisualBaseRotation()
         {
-            if (visualRoot == null && animator != null)
+            if (visualPivot == null && animator != null)
             {
-                visualRoot = animator.transform;
+                visualPivot = ResolveVisualPivot(animator.transform);
             }
 
-            if (visualRoot != null)
+            if (visualPivot != null)
             {
                 CaptureVisualBaseRotation(true);
-                visualRoot.localRotation = visualBaseLocalRotation;
+                visualPivot.localRotation = visualBaseLocalRotation;
             }
         }
 
@@ -653,18 +713,43 @@ namespace SkyCircuit.Presentation
 
         private void ApplyVisualTurnPose(float yawAngle, float bankAngle)
         {
-            if (visualRoot == null && animator != null)
+            if (visualPivot == null && animator != null)
             {
-                visualRoot = animator.transform;
+                visualPivot = ResolveVisualPivot(animator.transform);
             }
 
-            if (visualRoot == null)
+            if (visualPivot == null)
             {
                 return;
             }
 
             CaptureVisualBaseRotation(true);
-            visualRoot.localRotation = visualBaseLocalRotation * Quaternion.Euler(0f, yawAngle, bankAngle);
+            visualPivot.localRotation = visualBaseLocalRotation * Quaternion.Euler(0f, yawAngle, bankAngle);
+        }
+
+        private static bool IsCharacterVisualTransform(Transform candidate)
+        {
+            return candidate != null &&
+                candidate.name.IndexOf(CharacterVisualNameToken, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static bool IsVisualModelTransform(Transform candidate)
+        {
+            return candidate != null && candidate.name.EndsWith(VisualModelSuffix, StringComparison.Ordinal);
+        }
+
+        private static string StripModelSuffix(string visualName)
+        {
+            return visualName.EndsWith(VisualModelSuffix, StringComparison.Ordinal)
+                ? visualName.Substring(0, visualName.Length - VisualModelSuffix.Length)
+                : visualName;
+        }
+
+        private static string BuildModelName(string pivotName)
+        {
+            return pivotName.EndsWith(VisualModelSuffix, StringComparison.Ordinal)
+                ? pivotName
+                : pivotName + VisualModelSuffix;
         }
 
         private static void ApplyLocalFingerPose(Transform[] bones, Vector3 euler)

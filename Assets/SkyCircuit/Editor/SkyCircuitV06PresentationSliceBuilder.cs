@@ -25,9 +25,11 @@ namespace SkyCircuit.EditorTools
         private const string DemoMaterialsFolder = "Assets/SkyCircuit/Art/Materials";
         private const float CharacterVisualScale = 3.2f;
         private const float CharacterVisualPitch = -18f;
+        private const string CharacterVisualModelSuffix = " Model";
         private static readonly Vector3 DemoCameraOffset = new Vector3(1.8f, 4.6f, -7.6f);
         private static readonly Vector3 DemoAimOffset = new Vector3(0f, 0.8f, 1.6f);
         private static readonly Vector3 PresentationCameraOffset = new Vector3(0f, 7.5f, -5.7f);
+        private static readonly Vector3 CharacterVisualOffset = new Vector3(0f, -2.8f, 0f);
         private const float PresentationLookAheadDistance = 6.5f;
         private const float PresentationVerticalLookOffset = 2.5f;
         private const float PresentationViewPitchDownDegrees = 23f;
@@ -262,19 +264,20 @@ namespace SkyCircuit.EditorTools
 
         private static void CreateCharacterVisual(Transform parent, RuntimeAnimatorController animatorController)
         {
+            Transform pivot = CreateCharacterVisualPivot(parent);
             GameObject prefab = LoadFirstCharacterPrefab();
             if (prefab == null)
             {
                 Debug.LogWarning($"Sky Circuit V0.6 demo could not find a character prefab under {ArtSearchFolder}.");
-                CreateFallbackVisual(parent);
+                CreateFallbackVisual(pivot);
                 return;
             }
 
             GameObject visual = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
-            visual.name = "Player Character Visual";
-            visual.transform.SetParent(parent, false);
-            visual.transform.localPosition = new Vector3(0f, -2.8f, 0f);
-            visual.transform.localRotation = Quaternion.Euler(CharacterVisualPitch, 0f, 0f);
+            visual.name = "Player Character Visual" + CharacterVisualModelSuffix;
+            visual.transform.SetParent(pivot, false);
+            visual.transform.localPosition = CharacterVisualOffset;
+            visual.transform.localRotation = Quaternion.identity;
             visual.transform.localScale = Vector3.one * CharacterVisualScale;
 
             Animator animator = visual.GetComponent<Animator>() ?? visual.GetComponentInChildren<Animator>();
@@ -284,6 +287,17 @@ namespace SkyCircuit.EditorTools
                 animator.applyRootMotion = false;
                 EditorUtility.SetDirty(animator);
             }
+        }
+
+        private static Transform CreateCharacterVisualPivot(Transform parent)
+        {
+            GameObject pivotObject = new GameObject("Player Character Visual");
+            Transform pivot = pivotObject.transform;
+            pivot.SetParent(parent, false);
+            pivot.localPosition = Vector3.zero;
+            pivot.localRotation = Quaternion.Euler(CharacterVisualPitch, 0f, 0f);
+            pivot.localScale = Vector3.one;
+            return pivot;
         }
 
         private static void CreateCharacterWind(GameObject player, SkyCircuitFlightController flightController)
@@ -375,7 +389,7 @@ namespace SkyCircuit.EditorTools
         private static void CreateFallbackVisual(Transform parent)
         {
             GameObject body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            body.name = "Fallback Character Visual";
+            body.name = "Fallback Character Visual" + CharacterVisualModelSuffix;
             body.transform.SetParent(parent, false);
             body.transform.localPosition = new Vector3(0f, -0.25f, 0f);
             body.transform.localScale = new Vector3(0.7f, 1.5f, 0.7f);
