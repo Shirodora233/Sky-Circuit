@@ -1,0 +1,272 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7fd9488000d3734a9e00ee676215985, type: 3}
+  m_Name: SC_URPVolumetricCloudsProfile
+  m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.VolumeProfile
+  components:
+  - {fileID: 1596354992998883759}
+--- !u!114 &1596354992998883759
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5944d5dca791344186c8265c2b87ac4, type: 3}
+  m_Name: VolumetricClouds
+  m_EditorClassIdentifier: VolumetricCloudsURP::VolumetricClouds
+  active: 1
+  state:
+    m_OverrideState: 1
+    m_Value: 1
+  localClouds:
+    m_OverrideState: 1
+    m_Value: 0
+  m_CloudPreset:
+    m_OverrideState: 1
+    m_Value: 1
+  densityMultiplier:
+    m_OverrideState: 1
+    m_Value: 0.14
+  densityCurve:
+    m_OverrideState: 1
+    m_Value:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.1
+        value: 0.68
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.62
+        value: 0.42
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+  shapeFactor:
+    m_OverrideState: 1
+    m_Value: 0.94
+  shapeScale:
+    m_OverrideState: 1
+    m_Value: 6.8
+  erosionFactor:
+    m_OverrideState: 1
+    m_Value: 0.88
+  erosionScale:
+    m_OverrideState: 1
+    m_Value: 132
+  erosionCurve:
+    m_OverrideState: 1
+    m_Value:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 1
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.18
+        value: 0.98
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.72
+        value: 1
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+  ambientOcclusionCurve:
+    m_OverrideState: 1
+    m_Value:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.35
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+  microErosion:
+    m_OverrideState: 1
+    m_Value: 0
+  microErosionFactor:
+    m_OverrideState: 0
+    m_Value: 0.5
+  microErosionScale:
+    m_OverrideState: 0
+    m_Value: 200
+  bottomAltitude:
+    m_OverrideState: 1
+    m_Value: 5200
+  altitudeRange:
+    m_OverrideState: 1
+    m_Value: 1800
+  shapeOffset:
+    m_OverrideState: 0
+    m_Value: {x: 0, y: 0, z: 0}
+  earthCurvature:
+    m_OverrideState: 1
+    m_Value: 0.04
+  globalSpeed:
+    m_OverrideState: 1
+    m_Value: 6
+  globalOrientation:
+    m_OverrideState: 1
+    m_Value: 230
+  shapeSpeedMultiplier:
+    m_OverrideState: 1
+    m_Value: 0.22
+  erosionSpeedMultiplier:
+    m_OverrideState: 1
+    m_Value: 0.1
+  altitudeDistortion:
+    m_OverrideState: 1
+    m_Value: 0.05
+  verticalShapeWindSpeed:
+    m_OverrideState: 0
+    m_Value: 0
+  verticalErosionWindSpeed:
+    m_OverrideState: 0
+    m_Value: 0
+  ambientLightProbeDimmer:
+    m_OverrideState: 1
+    m_Value: 2
+  sunLightDimmer:
+    m_OverrideState: 1
+    m_Value: 2
+  erosionOcclusion:
+    m_OverrideState: 0
+    m_Value: 0.1
+  scatteringTint:
+    m_OverrideState: 1
+    m_Value: {r: 0.9, g: 0.9, b: 0.88, a: 1}
+  powderEffectIntensity:
+    m_OverrideState: 1
+    m_Value: 0
+  multiScattering:
+    m_OverrideState: 1
+    m_Value: 1
+  shadows:
+    m_OverrideState: 1
+    m_Value: 0
+  shadowResolution:
+    m_OverrideState: 0
+    m_Value: 256
+  shadowDistance:
+    m_OverrideState: 0
+    m_Value: 8000
+  shadowOpacity:
+    m_OverrideState: 0
+    m_Value: 1
+  shadowOpacityFallback:
+    m_OverrideState: 0
+    m_Value: 0
+  temporalAccumulationFactor:
+    m_OverrideState: 1
+    m_Value: 0.93
+  perceptualBlending:
+    m_OverrideState: 1
+    m_Value: 0.82
+  numPrimarySteps:
+    m_OverrideState: 1
+    m_Value: 56
+  numLightSteps:
+    m_OverrideState: 1
+    m_Value: 4
+  fadeInMode:
+    m_OverrideState: 1
+    m_Value: 0
+  fadeInStart:
+    m_OverrideState: 1
+    m_Value: 0
+  fadeInDistance:
+    m_OverrideState: 1
+    m_Value: 3200
