@@ -17,7 +17,9 @@ namespace SkyCircuit.EditorTools
         private const string MaterialsFolder = "Assets/SkyCircuit/Art/Materials";
 
         private const float CharacterVisualScale = 3.2f;
-        private const float CharacterVisualPitch = -18f;
+        private const float CharacterVisualPitch = -90f;
+        private const float CharacterVisualMovingPitch = -25f;
+        private const float CharacterVisualMovingSpeedThreshold = 0.5f;
         private const string VisualModelSuffix = " Model";
 
         private static readonly Vector3 CharacterVisualOffset = new Vector3(0f, -2.8f, 0f);
@@ -224,6 +226,16 @@ namespace SkyCircuit.EditorTools
             SetFloat(serializedPose, "visualBankAngle", 42f);
             SetFloat(serializedPose, "visualBankEnterSharpness", 3f);
             SetFloat(serializedPose, "visualBankReturnSharpness", 1.2f);
+            SetBool(serializedPose, "visualPitchFollowsVerticalAcceleration", true);
+            SetFloat(serializedPose, "visualStoppedPitchX", CharacterVisualPitch);
+            SetFloat(serializedPose, "visualMovingPitchX", CharacterVisualMovingPitch);
+            SetFloat(serializedPose, "visualMovingSpeedThreshold", CharacterVisualMovingSpeedThreshold);
+            SetFloat(serializedPose, "visualPitchAccelerationAngle", 32f);
+            SetFloat(serializedPose, "visualPitchFullAcceleration", 18f);
+            SetFloat(serializedPose, "visualPitchAccelerationDeadZone", 0.15f);
+            SetFloat(serializedPose, "visualPitchSharpness", 8f);
+            SetFloat(serializedPose, "visualPitchStartSharpness", 3f);
+            SetFloat(serializedPose, "visualPitchStopSharpness", 2.5f);
             SetBool(serializedPose, "openHands", false);
             SetFloat(serializedPose, "handOpenWeight", 1f);
             SetVector3(serializedPose, "fingerOpenEuler", new Vector3(-18f, 0f, 0f));
@@ -240,6 +252,8 @@ namespace SkyCircuit.EditorTools
             SetFloat(serializedPose, "editModePreviewWeight", 1f);
             SetFloat(serializedPose, "editModeDashPreviewWeight", 0f);
             SetFloat(serializedPose, "editModeTurnAmount", 0f);
+            SetBool(serializedPose, "editModePreviewMovingPitch", true);
+            SetFloat(serializedPose, "editModePreviewVerticalAcceleration", 0f);
             serializedPose.ApplyModifiedPropertiesWithoutUndo();
         }
 

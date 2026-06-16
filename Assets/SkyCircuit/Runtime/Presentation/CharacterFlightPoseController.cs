@@ -32,6 +32,11 @@ namespace SkyCircuit.Presentation
         [FormerlySerializedAs("editModeTurnPreview")]
         [Tooltip("Scene preview for all turn-driven pose layers. -1 previews left turn, 1 previews right turn.")]
         [SerializeField, Range(-1f, 1f)] private float editModeTurnAmount = 0f;
+        [Tooltip("Preview the visual pitch as moving. Disable to preview the stopped pitch.")]
+        [SerializeField] private bool editModePreviewMovingPitch = true;
+        [FormerlySerializedAs("editModePreviewVerticalSpeed")]
+        [Tooltip("Scene preview for vertical acceleration pitch response. Positive values preview upward acceleration, negative values preview downward acceleration.")]
+        [SerializeField] private float editModePreviewVerticalAcceleration = 0f;
 
         [Header("Arm Pose")]
         [SerializeField] private float upperArmBackAngle = 34f;
@@ -62,7 +67,7 @@ namespace SkyCircuit.Presentation
 
         [Header("Visual Turn Pose")]
         [Tooltip("Neutral local rotation for the character visual pivot. Turn pose yaw and bank are applied on top of this value.")]
-        [SerializeField] private Vector3 visualBaseLocalEuler = new Vector3(-18f, 0f, 0f);
+        [SerializeField] private Vector3 visualBaseLocalEuler = new Vector3(-90f, 0f, 0f);
         [SerializeField] private float visualYawAngle = 8f;
         [Tooltip("Control yaw error, in degrees, needed to reach full visual yaw pose.")]
         [SerializeField, Min(1f)] private float visualYawFullErrorAngle = 28f;
@@ -71,6 +76,25 @@ namespace SkyCircuit.Presentation
         [SerializeField] private float visualBankAngle = 42f;
         [SerializeField, Min(0.01f)] private float visualBankEnterSharpness = 3f;
         [SerializeField, Min(0.01f)] private float visualBankReturnSharpness = 1.2f;
+
+        [Header("Visual Pitch Pose")]
+        [SerializeField] private bool visualPitchFollowsVerticalAcceleration = true;
+        [Tooltip("Character visual X rotation while stopped.")]
+        [SerializeField] private float visualStoppedPitchX = -90f;
+        [Tooltip("Character visual X rotation while moving with neutral vertical acceleration.")]
+        [SerializeField] private float visualMovingPitchX = -25f;
+        [Tooltip("Body speed below this value is treated as stopped.")]
+        [SerializeField, Min(0f)] private float visualMovingSpeedThreshold = 0.5f;
+        [Tooltip("Maximum pitch offset added around Moving Pitch X by vertical acceleration.")]
+        [SerializeField, Min(0f)] private float visualPitchAccelerationAngle = 32f;
+        [SerializeField, Min(0.01f)] private float visualPitchFullAcceleration = 18f;
+        [SerializeField, Min(0f)] private float visualPitchAccelerationDeadZone = 0.15f;
+        [Tooltip("How quickly visual pitch follows acceleration while already moving.")]
+        [SerializeField, Min(0.01f)] private float visualPitchSharpness = 8f;
+        [Tooltip("How quickly visual pitch blends from stopped pitch to moving pitch.")]
+        [SerializeField, Min(0.01f)] private float visualPitchStartSharpness = 3f;
+        [Tooltip("How quickly visual pitch blends back to stopped pitch.")]
+        [SerializeField, Min(0.01f)] private float visualPitchStopSharpness = 2.5f;
 
         [Header("Hand Pose")]
         [SerializeField] private bool openHands = false;
@@ -95,6 +119,8 @@ namespace SkyCircuit.Presentation
         [SerializeField] private float effectiveDashPoseWeight;
         [SerializeField] private float effectiveTurnRate;
         [SerializeField] private float effectiveTurnLegPose;
+        [SerializeField] private float effectiveVerticalAcceleration;
+        [SerializeField] private float effectiveVisualPitch;
         [SerializeField] private float effectiveVisualYaw;
         [SerializeField] private float effectiveVisualBank;
         [SerializeField] private string status = "Not started";
@@ -118,10 +144,14 @@ namespace SkyCircuit.Presentation
         private float smoothedWeight;
         private float dashPoseBlend;
         private float smoothedTurnLegPose;
+        private float smoothedVisualPitch;
         private float smoothedVisualYawPose;
         private float smoothedVisualBankPose;
+        private Vector3 previousBodyVelocity;
         private bool visualBaseCaptured;
         private bool editModePoseCaptured;
+        private bool hasPreviousBodyVelocity;
+        private bool visualPitchWasMoving;
         private Quaternion visualBaseLocalRotation;
         private Quaternion leftUpperArmEditLocalRotation;
         private Quaternion rightUpperArmEditLocalRotation;
@@ -155,8 +185,13 @@ namespace SkyCircuit.Presentation
             smoothedWeight = 0f;
             dashPoseBlend = 0f;
             smoothedTurnLegPose = 0f;
+            effectiveVerticalAcceleration = 0f;
+            effectiveVisualPitch = BuildStoppedVisualPitch();
+            smoothedVisualPitch = effectiveVisualPitch;
             smoothedVisualYawPose = 0f;
             smoothedVisualBankPose = 0f;
+            hasPreviousBodyVelocity = false;
+            visualPitchWasMoving = false;
             visualBaseCaptured = false;
             CaptureVisualBaseRotation();
             if (!Application.isPlaying)
@@ -205,6 +240,7 @@ namespace SkyCircuit.Presentation
             }
 
             float dt = Mathf.Max(Time.deltaTime, 0.0001f);
+            UpdateRuntimeVisualPitchPose(dt);
             RestoreVisualBaseRotation();
             UpdateDashPose(dt);
             UpdateTurnLegPose(dt);
@@ -244,6 +280,9 @@ namespace SkyCircuit.Presentation
                 effectiveDashPoseWeight = 0f;
                 effectiveTurnRate = 0f;
                 effectiveTurnLegPose = 0f;
+                effectiveVerticalAcceleration = 0f;
+                effectiveVisualPitch = BuildStoppedVisualPitch();
+                smoothedVisualPitch = effectiveVisualPitch;
                 effectiveVisualYaw = 0f;
                 effectiveVisualBank = 0f;
                 status = "Edit preview disabled";
@@ -266,6 +305,7 @@ namespace SkyCircuit.Presentation
             CaptureEditModePose();
             RestoreEditModePose();
             SampleEditModeBaseClip();
+            UpdateEditModeVisualPitchPreview();
             CaptureVisualBaseRotation(true);
 
             effectivePoseWeight = editModePreviewWeight;
@@ -506,7 +546,7 @@ namespace SkyCircuit.Presentation
                 return;
             }
 
-            visualBaseLocalRotation = Quaternion.Euler(visualBaseLocalEuler);
+            visualBaseLocalRotation = Quaternion.Euler(BuildEffectiveVisualBaseEuler());
             visualBaseCaptured = true;
         }
 
@@ -568,6 +608,129 @@ namespace SkyCircuit.Presentation
             float speedWeight = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(minPoseSpeed, fullPoseSpeed, speed));
             float dashWeight = dashPoseWeightAdd * effectiveDashPoseWeight;
             return Mathf.Clamp01(basePoseWeight + speedWeight + dashWeight);
+        }
+
+        private void UpdateRuntimeVisualPitchPose(float dt)
+        {
+            if (!visualPitchFollowsVerticalAcceleration)
+            {
+                effectiveVerticalAcceleration = 0f;
+                effectiveVisualPitch = visualBaseLocalEuler.x;
+                smoothedVisualPitch = effectiveVisualPitch;
+                hasPreviousBodyVelocity = false;
+                visualPitchWasMoving = false;
+                return;
+            }
+
+            if (!IsVisualPitchMoving())
+            {
+                effectiveVerticalAcceleration = 0f;
+                smoothedVisualPitch = Mathf.Lerp(
+                    smoothedVisualPitch,
+                    visualStoppedPitchX,
+                    DampBlend(visualPitchStopSharpness, dt));
+                effectiveVisualPitch = smoothedVisualPitch;
+                hasPreviousBodyVelocity = false;
+                visualPitchWasMoving = false;
+                return;
+            }
+
+            float verticalAcceleration = SampleVerticalAcceleration(dt);
+            effectiveVerticalAcceleration = ApplyDeadZone(verticalAcceleration, visualPitchAccelerationDeadZone);
+            float targetPitch = BuildVisualPitchFromAcceleration(effectiveVerticalAcceleration);
+            float pitchSharpness = visualPitchWasMoving ? visualPitchSharpness : visualPitchStartSharpness;
+            smoothedVisualPitch = Mathf.Lerp(smoothedVisualPitch, targetPitch, DampBlend(pitchSharpness, dt));
+            effectiveVisualPitch = smoothedVisualPitch;
+            visualPitchWasMoving = true;
+        }
+
+        private void UpdateEditModeVisualPitchPreview()
+        {
+            if (!visualPitchFollowsVerticalAcceleration)
+            {
+                effectiveVerticalAcceleration = 0f;
+                effectiveVisualPitch = visualBaseLocalEuler.x;
+                smoothedVisualPitch = effectiveVisualPitch;
+                return;
+            }
+
+            if (!editModePreviewMovingPitch)
+            {
+                effectiveVerticalAcceleration = 0f;
+                effectiveVisualPitch = visualStoppedPitchX;
+                smoothedVisualPitch = effectiveVisualPitch;
+                return;
+            }
+
+            effectiveVerticalAcceleration = ApplyDeadZone(editModePreviewVerticalAcceleration, visualPitchAccelerationDeadZone);
+            effectiveVisualPitch = BuildVisualPitchFromAcceleration(effectiveVerticalAcceleration);
+            smoothedVisualPitch = effectiveVisualPitch;
+        }
+
+        private bool IsVisualPitchMoving()
+        {
+            return BuildVisualMotionSpeed() > Mathf.Max(0f, visualMovingSpeedThreshold);
+        }
+
+        private float BuildVisualMotionSpeed()
+        {
+            if (sourceBody != null)
+            {
+                return sourceBody.linearVelocity.magnitude;
+            }
+
+            return controller != null ? controller.CurrentSpeed : 0f;
+        }
+
+        private float SampleVerticalAcceleration(float dt)
+        {
+            if (sourceBody == null || dt <= 0f)
+            {
+                hasPreviousBodyVelocity = false;
+                return 0f;
+            }
+
+            Vector3 velocity = sourceBody.linearVelocity;
+            if (!hasPreviousBodyVelocity)
+            {
+                previousBodyVelocity = velocity;
+                hasPreviousBodyVelocity = true;
+                return 0f;
+            }
+
+            float verticalAcceleration = (velocity.y - previousBodyVelocity.y) / dt;
+            previousBodyVelocity = velocity;
+            return verticalAcceleration;
+        }
+
+        private float BuildVisualPitchFromAcceleration(float verticalAcceleration)
+        {
+            float input = Mathf.Clamp(
+                verticalAcceleration / Mathf.Max(0.01f, visualPitchFullAcceleration),
+                -1f,
+                1f);
+            return BuildVisualPitchFromInput(input);
+        }
+
+        private float BuildVisualPitchFromInput(float verticalInput)
+        {
+            return visualMovingPitchX - Mathf.Clamp(verticalInput, -1f, 1f) * visualPitchAccelerationAngle;
+        }
+
+        private float BuildStoppedVisualPitch()
+        {
+            return visualPitchFollowsVerticalAcceleration ? visualStoppedPitchX : visualBaseLocalEuler.x;
+        }
+
+        private Vector3 BuildEffectiveVisualBaseEuler()
+        {
+            float pitchX = visualPitchFollowsVerticalAcceleration ? effectiveVisualPitch : visualBaseLocalEuler.x;
+            return new Vector3(pitchX, visualBaseLocalEuler.y, visualBaseLocalEuler.z);
+        }
+
+        private static float ApplyDeadZone(float value, float deadZone)
+        {
+            return Mathf.Abs(value) <= Mathf.Max(0f, deadZone) ? 0f : value;
         }
 
         private void UpdateDashPose(float dt)
