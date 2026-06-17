@@ -29,7 +29,7 @@ namespace SkyCircuit.Networking
         [SerializeField] private Color boostTrailColor = new Color(1f, 0.95f, 0.55f, 1f);
 
         [Header("Debug")]
-        [SerializeField] private bool logContrailDebug = true;
+        [SerializeField] private bool logContrailDebug = false;
 
         private readonly NetworkVariable<int> syncedVisualSlot = new NetworkVariable<int>(
             -1,

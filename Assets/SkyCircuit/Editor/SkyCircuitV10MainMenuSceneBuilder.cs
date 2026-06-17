@@ -23,9 +23,6 @@ namespace SkyCircuit.EditorTools
     {
         private const string ScenePath = "Assets/Scenes/V0_10_MainMenu.unity";
         private const string OnlineCombatScenePath = "Assets/Scenes/V0_11_LanCloudSeaRacePrototype.unity";
-        private const string OnlineCombatFallbackScenePath = "Assets/Scenes/V0_8_LanMultiplayerPrototype.unity";
-        private const string StartScenePath = "Assets/Scenes/V0_9_CloudSeaRacePrototype.unity";
-        private const string StartFallbackScenePath = "Assets/Scenes/V0_6_PresentationSlice.unity";
         private const string TrainingScenePath = "Assets/Scenes/V0_1_FlightPrototype.unity";
         private const string AnimationsFolder = "Assets/SkyCircuit/Art/Animations";
         private const string MaterialsFolder = "Assets/SkyCircuit/Art/Materials";
@@ -733,7 +730,7 @@ namespace SkyCircuit.EditorTools
                 new Vector2(900f, 44f),
                 new Vector2(0f, -444f));
 
-            string combatScene = ResolveFirstExistingSceneName(OnlineCombatScenePath, OnlineCombatFallbackScenePath, StartScenePath, StartFallbackScenePath);
+            string combatScene = Path.GetFileNameWithoutExtension(OnlineCombatScenePath);
             string trainingScene = Path.GetFileNameWithoutExtension(TrainingScenePath);
             controller.Configure(combatScene, trainingScene, lanBootstrap, settingsPanel.GameObject, statusText);
 
@@ -1509,20 +1506,7 @@ namespace SkyCircuit.EditorTools
             List<string> scenePaths = new List<string>();
             AddBuildScene(scenePaths, ScenePath);
             AddBuildScene(scenePaths, OnlineCombatScenePath);
-            AddBuildScene(scenePaths, OnlineCombatFallbackScenePath);
-            AddBuildScene(scenePaths, StartScenePath);
-            AddBuildScene(scenePaths, StartFallbackScenePath);
             AddBuildScene(scenePaths, TrainingScenePath);
-
-            foreach (EditorBuildSettingsScene existingScene in EditorBuildSettings.scenes)
-            {
-                if (existingScene == null || string.IsNullOrEmpty(existingScene.path))
-                {
-                    continue;
-                }
-
-                AddBuildScene(scenePaths, existingScene.path);
-            }
 
             EditorBuildSettingsScene[] scenes = new EditorBuildSettingsScene[scenePaths.Count];
             for (int i = 0; i < scenePaths.Count; i++)
@@ -1543,17 +1527,5 @@ namespace SkyCircuit.EditorTools
             scenePaths.Add(scenePath);
         }
 
-        private static string ResolveFirstExistingSceneName(params string[] scenePaths)
-        {
-            foreach (string scenePath in scenePaths)
-            {
-                if (!string.IsNullOrEmpty(scenePath) && File.Exists(scenePath))
-                {
-                    return Path.GetFileNameWithoutExtension(scenePath);
-                }
-            }
-
-            return string.Empty;
-        }
     }
 }

@@ -25,7 +25,6 @@ namespace SkyCircuit.EditorTools
         private const string ScenePath = "Assets/Scenes/V0_11_LanCloudSeaRacePrototype.unity";
         private const string SettingsFolder = "Assets/SkyCircuit/Networking";
         private const string RacePlayerPrefabPath = SettingsFolder + "/SC_LanRaceFlightPlayer.prefab";
-        private const string FallbackPlayerPrefabPath = SettingsFolder + "/SC_LanFlightPlayer.prefab";
         private const string ContrailTrailMaterialPath = SettingsFolder + "/SC_ContrailTrail.mat";
         private const string RevisionMarkerName = "LAN Cloud Sea Race Scene Revision 4";
         private static readonly MethodInfo NetworkObjectOnValidate =
@@ -70,7 +69,7 @@ namespace SkyCircuit.EditorTools
             }
 
             RemoveSinglePlayerActors(gameplayRoot.transform);
-            DisableSinglePlayerSystems(scene);
+            RemoveSinglePlayerSystems(scene);
             ConfigureV09Camera(scene, gameplayRoot.transform);
             CreateRevisionMarker(scene);
             LanRaceSessionController session = CreateRaceSession(racePlayerPrefab, route, playerSpawn, opponentSpawn);
@@ -105,8 +104,7 @@ namespace SkyCircuit.EditorTools
         {
             if (playerTemplate == null)
             {
-                GameObject fallback = AssetDatabase.LoadAssetAtPath<GameObject>(RacePlayerPrefabPath)
-                    ?? AssetDatabase.LoadAssetAtPath<GameObject>(FallbackPlayerPrefabPath);
+                GameObject fallback = AssetDatabase.LoadAssetAtPath<GameObject>(RacePlayerPrefabPath);
                 RefreshNetworkObjectHash(fallback != null ? fallback.GetComponent<NetworkObject>() : null);
                 AssetDatabase.SaveAssets();
                 return fallback;
@@ -170,6 +168,7 @@ namespace SkyCircuit.EditorTools
         {
             SerializedObject serialized = new SerializedObject(inputBridge);
             serialized.FindProperty("bindOwnerCameraTargetRig").boolValue = true;
+            serialized.FindProperty("logContrailDebug").boolValue = false;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(inputBridge);
         }
@@ -233,11 +232,11 @@ namespace SkyCircuit.EditorTools
             DestroyChildIfPresent(gameplayRoot, "AI Competitor");
         }
 
-        private static void DisableSinglePlayerSystems(Scene scene)
+        private static void RemoveSinglePlayerSystems(Scene scene)
         {
-            DisableComponents<MatchController>(scene);
-            DisableComponents<DogfightController>(scene);
-            DisableComponents<MatchDebugHud>(scene);
+            DestroyComponents<MatchController>(scene);
+            DestroyComponents<DogfightController>(scene);
+            DestroyComponents<MatchDebugHud>(scene);
         }
 
         private static void ConfigureV09Camera(Scene scene, Transform gameplayRoot)
@@ -284,7 +283,9 @@ namespace SkyCircuit.EditorTools
             serialized.FindProperty("countdownDuration").floatValue = 3f;
             serialized.FindProperty("matchDuration").floatValue = 180f;
             serialized.FindProperty("showHud").boolValue = false;
+            serialized.FindProperty("showContrailDebug").boolValue = false;
             serialized.FindProperty("hudArea").rectValue = new Rect(18f, 18f, 520f, 245f);
+            serialized.FindProperty("contrailDebugArea").rectValue = new Rect(18f, 272f, 850f, 190f);
             serialized.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(session);
             return session;
@@ -434,14 +435,13 @@ namespace SkyCircuit.EditorTools
             return components.ToArray();
         }
 
-        private static void DisableComponents<T>(Scene scene) where T : Behaviour
+        private static void DestroyComponents<T>(Scene scene) where T : Component
         {
             foreach (GameObject rootObject in scene.GetRootGameObjects())
             {
                 foreach (T component in rootObject.GetComponentsInChildren<T>(true))
                 {
-                    component.enabled = false;
-                    EditorUtility.SetDirty(component);
+                    UnityEngine.Object.DestroyImmediate(component);
                 }
             }
         }

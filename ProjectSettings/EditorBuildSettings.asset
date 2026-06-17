@@ -12,15 +12,6 @@ EditorBuildSettings:
     path: Assets/Scenes/V0_11_LanCloudSeaRacePrototype.unity
     guid: fecf6dda9ae37b948a50a2176c1d74ba
   - enabled: 1
-    path: Assets/Scenes/V0_8_LanMultiplayerPrototype.unity
-    guid: 11ff0766eca3c3349be684684771ce57
-  - enabled: 1
-    path: Assets/Scenes/V0_9_CloudSeaRacePrototype.unity
-    guid: 5b7e73ab1901a7e45a253be34d8a14a4
-  - enabled: 1
-    path: Assets/Scenes/V0_6_PresentationSlice.unity
-    guid: d6c0490071225cb4f91ef5a555f60d27
-  - enabled: 1
     path: Assets/Scenes/V0_1_FlightPrototype.unity
     guid: dac8ba15f8e7e2f429f3912129047531
   m_configObjects:

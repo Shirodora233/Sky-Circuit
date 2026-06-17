@@ -4989,7 +4989,7 @@ MonoBehaviour:
   hostTrailColor: {r: 0.85, g: 0.38, b: 1, a: 0.95}
   clientTrailColor: {r: 0, g: 0.98, b: 0.6, a: 1}
   boostTrailColor: {r: 1, g: 0.95, b: 0.55, a: 1}
-  logContrailDebug: 1
+  logContrailDebug: 0
 --- !u!1 &3601238604043404250
 GameObject:
   m_ObjectHideFlags: 0

@@ -48,7 +48,7 @@ namespace SkyCircuit.Networking
         [Header("HUD")]
         [SerializeField] private bool showHud = true;
         [SerializeField] private Rect hudArea = new Rect(18f, 18f, 520f, 245f);
-        [SerializeField] private bool showContrailDebug = true;
+        [SerializeField] private bool showContrailDebug = false;
         [SerializeField] private Rect contrailDebugArea = new Rect(18f, 272f, 850f, 190f);
 
         private readonly NetworkVariable<int> syncedPhase = new NetworkVariable<int>(
@@ -397,55 +397,12 @@ namespace SkyCircuit.Networking
 
         private void SpawnMissingPlayerObjects()
         {
-            if (!IsServerActive || playerPrefab == null || networkManager.ConnectedClientsIds == null)
-            {
-                return;
-            }
-
-            List<ulong> clientIds = new List<ulong>(networkManager.ConnectedClientsIds);
-            clientIds.Sort();
-
-            for (int slot = 0; slot < clientIds.Count && slot < ExpectedPlayerCount; slot++)
-            {
-                ulong clientId = clientIds[slot];
-                if (!networkManager.ConnectedClients.TryGetValue(clientId, out NetworkClient client))
-                {
-                    continue;
-                }
-
-                if (client.PlayerObject != null)
-                {
-                    ResetExistingPlayerObject(client.PlayerObject, slot);
-                    continue;
-                }
-
-                Transform spawnPoint = ResolveSpawnPoint(slot);
-                Vector3 spawnPosition = spawnPoint != null ? spawnPoint.position : transform.position;
-                Quaternion spawnRotation = spawnPoint != null ? spawnPoint.rotation : transform.rotation;
-                GameObject playerObject = Instantiate(playerPrefab, spawnPosition, spawnRotation);
-                if (!playerObject.TryGetComponent(out NetworkObject networkObject))
-                {
-                    Destroy(playerObject);
-                    Debug.LogError("LAN race player prefab is missing a NetworkObject.");
-                    continue;
-                }
-
-                networkObject.SpawnAsPlayerObject(clientId, true);
-            }
-        }
-
-        private void ResetExistingPlayerObject(NetworkObject playerObject, int slot)
-        {
-            if (playerObject == null || playerObject.TryGetComponent(out NetworkFlightInputBridge _))
-            {
-                return;
-            }
-
-            Transform spawnPoint = ResolveSpawnPoint(slot);
-            if (spawnPoint != null)
-            {
-                playerObject.transform.SetPositionAndRotation(spawnPoint.position, spawnPoint.rotation);
-            }
+            LanRacePlayerSpawner.SpawnMissingPlayerObjects(
+                networkManager,
+                playerPrefab,
+                transform,
+                spawnPoints,
+                ExpectedPlayerCount);
         }
 
         private void ConfigureSlot(int slot, NetworkFlightInputBridge bridge)
