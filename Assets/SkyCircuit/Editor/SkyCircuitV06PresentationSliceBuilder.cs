@@ -42,6 +42,12 @@ namespace SkyCircuit.EditorTools
         [MenuItem("Sky Circuit/Build V0.6 Presentation Slice Scene")]
         public static void BuildCharacterFlightDemoScene()
         {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Debug.LogWarning("Cannot build the V0.6 presentation slice scene while Unity is in Play Mode.");
+                return;
+            }
+
             EnsureFolders();
             if (!File.Exists(SourceScenePath))
             {

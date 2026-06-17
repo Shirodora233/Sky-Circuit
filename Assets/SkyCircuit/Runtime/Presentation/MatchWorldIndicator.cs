@@ -1,4 +1,5 @@
 using SkyCircuit.Match;
+using SkyCircuit.Networking;
 using UnityEngine;
 
 namespace SkyCircuit.Presentation
@@ -7,6 +8,7 @@ namespace SkyCircuit.Presentation
     {
         [SerializeField] private Camera targetCamera;
         [SerializeField] private MatchController match;
+        [SerializeField] private LanRaceSessionController lanSession;
         [SerializeField] private BuoyRoute route;
 
         [Header("Screen Placement")]
@@ -34,6 +36,15 @@ namespace SkyCircuit.Presentation
         {
             targetCamera = camera;
             match = matchController;
+            lanSession = null;
+            route = buoyRoute;
+        }
+
+        public void Configure(Camera camera, LanRaceSessionController sessionController, BuoyRoute buoyRoute)
+        {
+            targetCamera = camera;
+            match = null;
+            lanSession = sessionController;
             route = buoyRoute;
         }
 
@@ -68,8 +79,11 @@ namespace SkyCircuit.Presentation
             }
 
             Camera camera = targetCamera != null ? targetCamera : Camera.main;
-            Competitor player = match != null ? match.Player : null;
-            Transform target = route != null ? route.GetTarget(player) : null;
+            Competitor player = match != null ? match.Player : lanSession != null ? lanSession.LocalPlayer : null;
+            int targetIndex = match != null && player != null
+                ? player.TargetIndex
+                : lanSession != null ? lanSession.LocalTargetIndex : 0;
+            Transform target = route != null ? route.GetTarget(targetIndex) : null;
             if (camera == null || player == null || player.Body == null || target == null)
             {
                 return;
@@ -79,7 +93,7 @@ namespace SkyCircuit.Presentation
             bool touchReady = distance <= route.TouchRadius * touchPromptMultiplier;
             Color color = touchReady ? touchColor : targetColor;
             string distanceText = touchReady ? "TOUCH" : $"{distance:0}m";
-            int buoyNumber = player.TargetIndex + 1;
+            int buoyNumber = targetIndex + 1;
 
             Vector3 labelWorldPosition = target.position + Vector3.up * worldLabelOffset;
             Vector3 viewport = camera.WorldToViewportPoint(labelWorldPosition);

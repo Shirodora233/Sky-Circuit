@@ -1,4 +1,5 @@
 using SkyCircuit.Match;
+using SkyCircuit.Networking;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,6 +10,7 @@ namespace SkyCircuit.Presentation
     public sealed class MatchScoreboardHud : MonoBehaviour
     {
         [SerializeField] private MatchController match;
+        [SerializeField] private LanRaceSessionController lanSession;
 
         [Header("Layout")]
         [SerializeField] private Vector2 referenceResolution = new Vector2(1920f, 1080f);
@@ -51,6 +53,14 @@ namespace SkyCircuit.Presentation
         public void Configure(MatchController matchController)
         {
             match = matchController;
+            lanSession = null;
+            RebuildNow();
+        }
+
+        public void Configure(LanRaceSessionController sessionController)
+        {
+            match = null;
+            lanSession = sessionController;
             RebuildNow();
         }
 
@@ -230,6 +240,13 @@ namespace SkyCircuit.Presentation
 
         private void ApplyScores()
         {
+            if (lanSession != null)
+            {
+                ApplySide(leftNameText, leftScore, leftScoreGlow, lanSession.LeftDisplayName, lanSession.LeftScore, leftNameOverride);
+                ApplySide(rightNameText, rightScore, rightScoreGlow, lanSession.RightDisplayName, lanSession.RightScore, rightNameOverride);
+                return;
+            }
+
             Competitor player = match != null ? match.Player : null;
             Competitor opponent = match != null ? match.Opponent : null;
 
@@ -248,6 +265,22 @@ namespace SkyCircuit.Presentation
                 ? overrideName
                 : competitor != null ? competitor.DisplayName : "--";
             int score = competitor != null ? competitor.Score : 0;
+
+            ApplySide(nameText, scoreGraphic, glowGraphic, label, score, string.Empty);
+        }
+
+        private void ApplySide(
+            Text nameText,
+            SevenSegmentScoreGraphic scoreGraphic,
+            SevenSegmentScoreGraphic glowGraphic,
+            string label,
+            int score,
+            string overrideName)
+        {
+            if (!string.IsNullOrWhiteSpace(overrideName))
+            {
+                label = overrideName;
+            }
 
             if (nameText != null)
             {

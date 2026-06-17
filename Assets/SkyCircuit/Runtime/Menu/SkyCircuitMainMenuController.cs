@@ -1,4 +1,6 @@
 using System.Collections;
+using SkyCircuit.Networking;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -7,8 +9,9 @@ namespace SkyCircuit.Menu
 {
     public sealed class SkyCircuitMainMenuController : MonoBehaviour
     {
-        [SerializeField] private string combatSceneName = "V0_9_CloudSeaRacePrototype";
+        [SerializeField] private string combatSceneName = "V0_11_LanCloudSeaRacePrototype";
         [SerializeField] private string trainingSceneName = "V0_1_FlightPrototype";
+        [SerializeField] private LanNetworkBootstrap lanBootstrap;
         [SerializeField] private GameObject settingsPanel;
         [SerializeField] private Text statusText;
         [SerializeField] private float statusMessageSeconds = 2.4f;
@@ -18,17 +21,21 @@ namespace SkyCircuit.Menu
         public void Configure(
             string combatScene,
             string trainingScene,
+            LanNetworkBootstrap networkBootstrap,
             GameObject settingsRoot,
             Text statusLabel)
         {
             combatSceneName = combatScene;
             trainingSceneName = trainingScene;
+            lanBootstrap = networkBootstrap;
             settingsPanel = settingsRoot;
             statusText = statusLabel;
         }
 
         private void Awake()
         {
+            ResolveLanBootstrap();
+
             if (settingsPanel != null)
             {
                 settingsPanel.SetActive(false);
@@ -42,6 +49,23 @@ namespace SkyCircuit.Menu
 
         public void StartCombat()
         {
+            if (!HasEstablishedLanConnection())
+            {
+                ShowStatus("\u672a\u5efa\u7acb\u8054\u673a\u8fde\u63a5\uff0c\u65e0\u6cd5\u5f00\u59cb\u4f5c\u6218");
+                return;
+            }
+
+            if (TryLoadCombatAsNetworkScene())
+            {
+                return;
+            }
+
+            if (lanBootstrap != null && lanBootstrap.IsClient && !lanBootstrap.IsServer)
+            {
+                ShowStatus("\u5df2\u8fde\u63a5\uff0c\u7b49\u5f85\u4e3b\u673a\u5f00\u59cb\u4f5c\u6218");
+                return;
+            }
+
             LoadScene(combatSceneName, "\u4f5c\u6218\u573a\u666f\u8fd8\u6ca1\u6709\u52a0\u5165\u6784\u5efa");
         }
 
@@ -103,6 +127,64 @@ namespace SkyCircuit.Menu
             }
 
             SceneManager.LoadScene(sceneName);
+        }
+
+        private bool HasEstablishedLanConnection()
+        {
+            ResolveLanBootstrap();
+            if (lanBootstrap == null || !lanBootstrap.IsListening)
+            {
+                return false;
+            }
+
+            if (lanBootstrap.IsHost)
+            {
+                return lanBootstrap.ConnectedClientCount > 1;
+            }
+
+            if (lanBootstrap.IsServer || lanBootstrap.IsClient)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool TryLoadCombatAsNetworkScene()
+        {
+            NetworkManager networkManager = NetworkManager.Singleton;
+            if (networkManager == null || !networkManager.IsListening || !networkManager.IsServer)
+            {
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(combatSceneName) || !Application.CanStreamedLevelBeLoaded(combatSceneName))
+            {
+                ShowStatus("\u4f5c\u6218\u573a\u666f\u8fd8\u6ca1\u6709\u52a0\u5165\u6784\u5efa");
+                return true;
+            }
+
+            if (!networkManager.NetworkConfig.EnableSceneManagement || networkManager.SceneManager == null)
+            {
+                return false;
+            }
+
+            SceneEventProgressStatus status = networkManager.SceneManager.LoadScene(combatSceneName, LoadSceneMode.Single);
+            if (status == SceneEventProgressStatus.Started)
+            {
+                return true;
+            }
+
+            ShowStatus($"\u7f51\u7edc\u573a\u666f\u52a0\u8f7d\u5931\u8d25\uff1a{status}");
+            return true;
+        }
+
+        private void ResolveLanBootstrap()
+        {
+            if (lanBootstrap == null)
+            {
+                lanBootstrap = FindAnyObjectByType<LanNetworkBootstrap>(FindObjectsInactive.Include);
+            }
         }
 
         private void ShowStatus(string message)

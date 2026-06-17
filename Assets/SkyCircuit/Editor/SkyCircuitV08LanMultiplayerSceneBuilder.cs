@@ -22,6 +22,12 @@ namespace SkyCircuit.EditorTools
         [MenuItem("Sky Circuit/Build V0.8 LAN Multiplayer Prototype Scene")]
         public static void BuildLanMultiplayerPrototypeScene()
         {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Debug.LogWarning("Cannot build the V0.8 LAN multiplayer prototype scene while Unity is in Play Mode.");
+                return;
+            }
+
             EnsureFolders();
 
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);

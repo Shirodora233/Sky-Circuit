@@ -1,5 +1,8 @@
 using SkyCircuit.Flight;
+using SkyCircuit.CameraRigging;
+using SkyCircuit.Presentation;
 using Unity.Netcode;
+using Unity.Netcode.Components;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
@@ -17,39 +20,89 @@ namespace SkyCircuit.Networking
         [SerializeField] private float gamepadLookScale = 16f;
 
         [Header("Owner Camera")]
-        [SerializeField] private bool followOwnerWithMainCamera = true;
-        [SerializeField] private Vector3 cameraOffset = new Vector3(0f, 5.2f, -14f);
-        [SerializeField] private Vector3 cameraLookOffset = new Vector3(0f, 1.5f, 8f);
-        [SerializeField] private float cameraFollowSharpness = 18f;
+        [SerializeField] private bool bindOwnerCameraTargetRig = true;
+        [SerializeField] private FlightCameraTargetRig ownerCameraTargetRig;
 
-        private FlightInputState latestServerInput = FlightInputState.Neutral;
-        private Camera ownerCamera;
+        [Header("Contrails")]
+        [SerializeField] private Color hostTrailColor = new Color(0.85f, 0.38f, 1f, 0.95f);
+        [SerializeField] private Color clientTrailColor = new Color(0f, 0.98f, 0.6f, 1f);
+        [SerializeField] private Color boostTrailColor = new Color(1f, 0.95f, 0.55f, 1f);
+
+        [Header("Debug")]
+        [SerializeField] private bool logContrailDebug = true;
+
+        private readonly NetworkVariable<int> syncedVisualSlot = new NetworkVariable<int>(
+            -1,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
+        private readonly NetworkVariable<float> syncedNormalizedSpeed = new NetworkVariable<float>(
+            0f,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
+        private readonly NetworkVariable<bool> syncedContrailEmitting = new NetworkVariable<bool>(
+            false,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
+        private readonly NetworkVariable<bool> syncedContrailBoosting = new NetworkVariable<bool>(
+            false,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
+
+        private FlightContrailFeedback[] contrailFeedbacks = System.Array.Empty<FlightContrailFeedback>();
+        private int localVisualSlot = -1;
+        private int lastBroadcastVisualSlot = -1;
+        private bool ownerCameraTargetRigBound;
+        private bool ownerInputActive = false;
+
+        public bool HasControlAuthority => IsSpawned && IsOwner;
+        public int DebugLocalVisualSlot => localVisualSlot;
+        public int DebugSyncedVisualSlot => IsSpawned ? syncedVisualSlot.Value : -1;
+        public int DebugResolvedVisualSlot => ResolveVisualSlot();
+        public int DebugContrailFeedbackCount => contrailFeedbacks != null ? contrailFeedbacks.Length : 0;
+        public float DebugSyncedNormalizedSpeed => IsSpawned ? syncedNormalizedSpeed.Value : 0f;
+        public bool DebugSyncedContrailEmitting => IsSpawned && syncedContrailEmitting.Value;
+        public bool DebugSyncedContrailBoosting => IsSpawned && syncedContrailBoosting.Value;
+        public Color DebugResolvedCruiseColor => ResolveVisualSlot() == 1 ? clientTrailColor : hostTrailColor;
+        public string DebugFirstTrailSummary => BuildFirstTrailSummary();
 
         private void Awake()
         {
             controller = controller != null ? controller : GetComponent<SkyCircuitFlightController>();
             body = body != null ? body : GetComponent<Rigidbody>();
+            RefreshContrailFeedbacks();
         }
 
         public override void OnNetworkSpawn()
         {
             base.OnNetworkSpawn();
+            syncedVisualSlot.OnValueChanged += HandleSyncedVisualSlotChanged;
             ConfigureAuthority();
+            controller?.SyncControlRotationFromTransform();
+            localVisualSlot = syncedVisualSlot.Value >= 0
+                ? Mathf.Clamp(syncedVisualSlot.Value, 0, 1)
+                : InferVisualSlotFromOwner();
+            if (IsServer)
+            {
+                syncedVisualSlot.Value = localVisualSlot;
+            }
+
+            ConfigureNetworkTransformAuthority();
 
             if (IsOwner && lockCursorForOwner)
             {
                 LockCursor();
             }
+
+            RefreshContrailFeedbacks();
+            LogContrailDebug("spawn");
         }
 
         public override void OnNetworkDespawn()
         {
             base.OnNetworkDespawn();
-
-            if (IsOwner && ownerCamera != null)
-            {
-                ownerCamera = null;
-            }
+            syncedVisualSlot.OnValueChanged -= HandleSyncedVisualSlotChanged;
+            ownerCameraTargetRigBound = false;
+            lastBroadcastVisualSlot = -1;
         }
 
         private void Update()
@@ -57,50 +110,145 @@ namespace SkyCircuit.Networking
             if (IsOwner)
             {
                 HandleCursorLock();
-                FlightInputState input = ReadInput();
-                SubmitInputServerRpc(input.Throttle, input.Turn, input.Vertical, input.LookDelta, input.Boost);
+                if (ownerInputActive)
+                {
+                    FlightInputState input = ReadInput();
+                    controller?.SetInput(input);
+                    PublishOwnerContrailState();
+                }
+                else
+                {
+                    controller?.SyncControlRotationFromTransform();
+                }
             }
 
-            if (IsServer && controller != null)
+            ApplyContrailVisuals();
+        }
+
+        public void ConfigureContrailPalette(Color hostCruise, Color clientCruise, Color boost)
+        {
+            hostTrailColor = hostCruise;
+            clientTrailColor = clientCruise;
+            boostTrailColor = boost;
+            ApplyContrailVisuals();
+        }
+
+        public void SetInputActive(bool active)
+        {
+            if (ownerInputActive == active)
             {
-                controller.SetInput(latestServerInput);
+                return;
+            }
+
+            ownerInputActive = active;
+            if (!ownerInputActive)
+            {
+                controller?.SetInput(FlightInputState.Neutral);
+            }
+
+            controller?.SyncControlRotationFromTransform();
+            ConfigureAuthority();
+        }
+
+        public void SetVisualSlot(int slot)
+        {
+            int clampedSlot = Mathf.Clamp(slot, 0, 1);
+            localVisualSlot = clampedSlot;
+            if (IsServer && IsSpawned)
+            {
+                if (syncedVisualSlot.Value != clampedSlot)
+                {
+                    syncedVisualSlot.Value = clampedSlot;
+                }
+
+                if (lastBroadcastVisualSlot != clampedSlot)
+                {
+                    lastBroadcastVisualSlot = clampedSlot;
+                    ApplyVisualSlotClientRpc(clampedSlot);
+                    LogContrailDebug($"broadcast slot {clampedSlot}");
+                }
+            }
+
+            ApplyContrailVisuals();
+        }
+
+        public void ResetFlightForRace(Vector3 position, Quaternion rotation)
+        {
+            ApplyRaceReset(position, rotation);
+            if (IsServer && IsSpawned)
+            {
+                ResetFlightForRaceClientRpc(position, rotation);
+            }
+        }
+
+        public void ApplyRaceImpulse(Vector3 velocityChange)
+        {
+            if (IsServer && IsSpawned)
+            {
+                ApplyRaceImpulseClientRpc(velocityChange);
+                return;
+            }
+
+            if (IsOwner)
+            {
+                ApplyRaceImpulseLocally(velocityChange);
             }
         }
 
         private void LateUpdate()
         {
-            if (!IsOwner || !followOwnerWithMainCamera)
+            if (!IsOwner || !bindOwnerCameraTargetRig || ownerCameraTargetRigBound)
             {
                 return;
             }
 
-            ownerCamera = ownerCamera != null ? ownerCamera : Camera.main;
-            if (ownerCamera == null)
+            ownerCameraTargetRig = ownerCameraTargetRig != null
+                ? ownerCameraTargetRig
+                : FindAnyObjectByType<FlightCameraTargetRig>(FindObjectsInactive.Include);
+            if (ownerCameraTargetRig == null)
             {
                 return;
             }
 
-            Transform cameraTransform = ownerCamera.transform;
-            Vector3 targetPosition = transform.TransformPoint(cameraOffset);
-            Vector3 lookTarget = transform.TransformPoint(cameraLookOffset);
-            float blend = 1f - Mathf.Exp(-cameraFollowSharpness * Time.deltaTime);
-
-            cameraTransform.position = Vector3.Lerp(cameraTransform.position, targetPosition, blend);
-            Quaternion targetRotation = Quaternion.LookRotation(lookTarget - cameraTransform.position, Vector3.up);
-            cameraTransform.rotation = Quaternion.Slerp(cameraTransform.rotation, targetRotation, blend);
+            ownerCameraTargetRig.Configure(transform, controller, body, ownerCameraTargetRig.AimTarget);
+            ownerCameraTargetRig.gameObject.SetActive(true);
+            ownerCameraTargetRigBound = true;
         }
 
-        [ServerRpc]
-        private void SubmitInputServerRpc(float throttle, float turn, float vertical, Vector2 lookDelta, bool boost)
+        [ClientRpc]
+        private void ApplyVisualSlotClientRpc(int slot)
         {
-            latestServerInput = new FlightInputState(throttle, turn, vertical, lookDelta, boost);
+            localVisualSlot = Mathf.Clamp(slot, 0, 1);
+            ApplyContrailVisuals();
+            LogContrailDebug($"client rpc slot {localVisualSlot}");
+        }
+
+        [ClientRpc]
+        private void ResetFlightForRaceClientRpc(Vector3 position, Quaternion rotation)
+        {
+            ApplyRaceReset(position, rotation);
+        }
+
+        [ClientRpc]
+        private void ApplyRaceImpulseClientRpc(Vector3 velocityChange)
+        {
+            if (IsOwner)
+            {
+                ApplyRaceImpulseLocally(velocityChange);
+            }
+        }
+
+        [ServerRpc(Delivery = RpcDelivery.Unreliable)]
+        private void SubmitContrailStateServerRpc(float normalizedSpeed, bool emitting, bool boosting)
+        {
+            SetSyncedContrailState(normalizedSpeed, emitting, boosting);
         }
 
         private void ConfigureAuthority()
         {
             if (controller != null)
             {
-                controller.enabled = IsServer;
+                controller.enabled = ownerInputActive && HasControlAuthority;
                 controller.SetInput(FlightInputState.Neutral);
             }
 
@@ -109,13 +257,184 @@ namespace SkyCircuit.Networking
                 return;
             }
 
-            body.isKinematic = !IsServer;
+            body.isKinematic = !HasControlAuthority;
             body.useGravity = false;
-            if (!IsServer)
+            if (!HasControlAuthority)
             {
                 body.linearVelocity = Vector3.zero;
                 body.angularVelocity = Vector3.zero;
             }
+        }
+
+        private void ConfigureNetworkTransformAuthority()
+        {
+            NetworkTransform networkTransform = GetComponent<NetworkTransform>();
+            if (networkTransform != null)
+            {
+                networkTransform.AuthorityMode = NetworkTransform.AuthorityModes.Owner;
+            }
+        }
+
+        private void PublishOwnerContrailState()
+        {
+            if (controller == null)
+            {
+                return;
+            }
+
+            float normalizedSpeed = controller.NormalizedSpeed;
+            bool emitting = controller.CurrentSpeed > 1f;
+            bool boosting = controller.IsBoosting || controller.IsDashing;
+
+            if (IsServer)
+            {
+                SetSyncedContrailState(normalizedSpeed, emitting, boosting);
+                return;
+            }
+
+            SubmitContrailStateServerRpc(normalizedSpeed, emitting, boosting);
+        }
+
+        private void SetSyncedContrailState(float normalizedSpeed, bool emitting, bool boosting)
+        {
+            if (!IsServer)
+            {
+                return;
+            }
+
+            syncedNormalizedSpeed.Value = Mathf.Clamp01(normalizedSpeed);
+            syncedContrailEmitting.Value = emitting;
+            syncedContrailBoosting.Value = boosting;
+        }
+
+        private void HandleSyncedVisualSlotChanged(int previousValue, int currentValue)
+        {
+            if (currentValue < 0)
+            {
+                return;
+            }
+
+            localVisualSlot = Mathf.Clamp(currentValue, 0, 1);
+            ApplyContrailVisuals();
+            LogContrailDebug($"network slot {previousValue}->{currentValue}");
+        }
+
+        private void ApplyRaceImpulseLocally(Vector3 velocityChange)
+        {
+            controller?.ApplyExternalImpulse(velocityChange);
+        }
+
+        private void ApplyRaceReset(Vector3 position, Quaternion rotation)
+        {
+            if (controller != null)
+            {
+                controller.ResetFlight(position, rotation);
+            }
+            else
+            {
+                transform.SetPositionAndRotation(position, rotation);
+            }
+
+            if (body != null)
+            {
+                body.position = position;
+                body.rotation = rotation;
+                body.linearVelocity = Vector3.zero;
+                body.angularVelocity = Vector3.zero;
+            }
+        }
+
+        private void ApplyContrailVisuals()
+        {
+            RefreshContrailFeedbacks();
+
+            int slot = ResolveVisualSlot();
+            Color cruise = slot == 1 ? clientTrailColor : hostTrailColor;
+            bool useLocalControllerState = IsOwner && controller != null;
+            float normalizedSpeed = useLocalControllerState ? controller.NormalizedSpeed : syncedNormalizedSpeed.Value;
+            bool emitting = useLocalControllerState ? controller.CurrentSpeed > 1f : syncedContrailEmitting.Value;
+            bool boosting = useLocalControllerState
+                ? controller.IsBoosting || controller.IsDashing
+                : syncedContrailBoosting.Value;
+
+            for (int i = 0; i < contrailFeedbacks.Length; i++)
+            {
+                FlightContrailFeedback feedback = contrailFeedbacks[i];
+                if (feedback == null)
+                {
+                    continue;
+                }
+
+                feedback.ConfigureColors(cruise, boostTrailColor);
+                feedback.SetExternalVisualState(normalizedSpeed, emitting, boosting);
+            }
+        }
+
+        private int ResolveVisualSlot()
+        {
+            if (IsSpawned && syncedVisualSlot.Value >= 0)
+            {
+                return Mathf.Clamp(syncedVisualSlot.Value, 0, 1);
+            }
+
+            if (localVisualSlot >= 0)
+            {
+                return Mathf.Clamp(localVisualSlot, 0, 1);
+            }
+
+            if (IsSpawned)
+            {
+                return InferVisualSlotFromOwner();
+            }
+
+            return 0;
+        }
+
+        private int InferVisualSlotFromOwner()
+        {
+            return OwnerClientId == 0UL ? 0 : 1;
+        }
+
+        private void RefreshContrailFeedbacks()
+        {
+            if (contrailFeedbacks != null && contrailFeedbacks.Length > 0)
+            {
+                return;
+            }
+
+            contrailFeedbacks = GetComponentsInChildren<FlightContrailFeedback>(true);
+        }
+
+        private string BuildFirstTrailSummary()
+        {
+            RefreshContrailFeedbacks();
+            if (contrailFeedbacks == null || contrailFeedbacks.Length == 0)
+            {
+                return "feedback=0";
+            }
+
+            FlightContrailFeedback feedback = contrailFeedbacks[0];
+            if (feedback == null)
+            {
+                return $"feedback={contrailFeedbacks.Length} first=null";
+            }
+
+            return $"feedback={contrailFeedbacks.Length} trails={feedback.DebugTrailCount} material={feedback.DebugFirstTrailMaterial} external={feedback.DebugUseExternalVisualState} emit={feedback.DebugFirstTrailEmitting} stateEmit={feedback.DebugExternalEmitting} stateBoost={feedback.DebugExternalBoosting} stateSpeed={feedback.DebugExternalNormalizedSpeed:0.00} trailColor=#{ColorUtility.ToHtmlStringRGBA(feedback.DebugFirstTrailStartColor)} cruise=#{ColorUtility.ToHtmlStringRGBA(feedback.DebugCruiseColor)}";
+        }
+
+        private void LogContrailDebug(string reason)
+        {
+            if (!logContrailDebug)
+            {
+                return;
+            }
+
+            ulong localClientId = NetworkManager.Singleton != null ? NetworkManager.Singleton.LocalClientId : ulong.MaxValue;
+            Debug.Log(
+                $"[LAN Contrail] {reason} object={name} netId={NetworkObjectId} owner={OwnerClientId} localClient={localClientId} " +
+                $"isServer={IsServer} isOwner={IsOwner} localSlot={localVisualSlot} syncedSlot={DebugSyncedVisualSlot} resolvedSlot={ResolveVisualSlot()} " +
+                $"syncedSpeed={DebugSyncedNormalizedSpeed:0.00} syncedEmit={DebugSyncedContrailEmitting} syncedBoost={DebugSyncedContrailBoosting} " +
+                $"resolvedColor=#{ColorUtility.ToHtmlStringRGBA(DebugResolvedCruiseColor)} {BuildFirstTrailSummary()}");
         }
 
         private FlightInputState ReadInput()

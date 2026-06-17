@@ -123,15 +123,27 @@ namespace SkyCircuit.Flight
             body.angularVelocity = Vector3.zero;
             externalVelocity = Vector3.zero;
 
+            SyncControlRotation(rotation);
+            EnsureSpeedModule();
+            EnsureDashSkillModule();
+            ApplyProfile(profile, false);
+            speedModule.Reset(rotation);
+        }
+
+        public void SyncControlRotationFromTransform()
+        {
+            Quaternion rotation = body != null ? body.rotation : transform.rotation;
+            SyncControlRotation(rotation);
+        }
+
+        public void SyncControlRotation(Quaternion rotation)
+        {
             var angles = rotation.eulerAngles;
             yaw = angles.y;
             pitch = NormalizeAngle(angles.x);
             latestLookBank = 0f;
             signedTurnRate = 0f;
-            EnsureSpeedModule();
-            EnsureDashSkillModule();
-            ApplyProfile(profile, false);
-            speedModule.Reset(rotation);
+            input = FlightInputState.Neutral;
         }
 
         private void ApplySteeringSettings(FlightSteeringSettings settings)

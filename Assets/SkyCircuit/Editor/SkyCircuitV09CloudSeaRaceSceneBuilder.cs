@@ -23,7 +23,9 @@ namespace SkyCircuit.EditorTools
 
         static SkyCircuitV09CloudSeaRaceSceneBuilder()
         {
-            if (Application.isBatchMode || SessionState.GetBool(AutoBuildSessionKey, false))
+            if (Application.isBatchMode
+                || EditorApplication.isPlayingOrWillChangePlaymode
+                || SessionState.GetBool(AutoBuildSessionKey, false))
             {
                 return;
             }
@@ -34,7 +36,7 @@ namespace SkyCircuit.EditorTools
         [DidReloadScripts]
         private static void QueueRefreshAfterReload()
         {
-            if (Application.isBatchMode)
+            if (Application.isBatchMode || EditorApplication.isPlayingOrWillChangePlaymode)
             {
                 return;
             }
@@ -46,6 +48,12 @@ namespace SkyCircuit.EditorTools
         [MenuItem("Sky Circuit/Build V0.9 Cloud Sea Race Prototype")]
         public static void BuildScene()
         {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Debug.LogWarning("Cannot build the V0.9 cloud sea race scene while Unity is in Play Mode.");
+                return;
+            }
+
             if (!File.Exists(CloudSeaSourceScenePath))
             {
                 Debug.LogWarning($"Cloud sea source scene not found at {CloudSeaSourceScenePath}.");
@@ -84,7 +92,7 @@ namespace SkyCircuit.EditorTools
 
         private static void TryAutoBuildScene()
         {
-            if (Application.isBatchMode)
+            if (Application.isBatchMode || EditorApplication.isPlayingOrWillChangePlaymode)
             {
                 return;
             }

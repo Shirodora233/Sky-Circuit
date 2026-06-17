@@ -1,5 +1,6 @@
 using SkyCircuit.Combat;
 using SkyCircuit.Match;
+using SkyCircuit.Networking;
 using UnityEngine;
 
 namespace SkyCircuit.Presentation
@@ -8,6 +9,7 @@ namespace SkyCircuit.Presentation
     {
         [SerializeField] private Camera targetCamera;
         [SerializeField] private MatchController match;
+        [SerializeField] private LanRaceSessionController lanSession;
         [SerializeField] private DogfightController dogfight;
 
         [Header("Threat Rules")]
@@ -46,7 +48,17 @@ namespace SkyCircuit.Presentation
         {
             targetCamera = camera;
             match = matchController;
+            lanSession = null;
             dogfight = dogfightController;
+        }
+
+        public void Configure(Camera camera, LanRaceSessionController sessionController)
+        {
+            targetCamera = camera;
+            match = null;
+            lanSession = sessionController;
+            dogfight = null;
+            requireDogfightUnlocked = true;
         }
 
         private void Update()
@@ -94,18 +106,26 @@ namespace SkyCircuit.Presentation
             intensity = 0f;
             critical = false;
 
-            if (match == null || match.Phase != MatchPhase.Running)
+            bool running = match != null
+                ? match.Phase == MatchPhase.Running
+                : lanSession != null && lanSession.Phase == LanRacePhase.Running;
+            if (!running)
             {
                 return ThreatEdge.None;
             }
 
-            if (requireDogfightUnlocked && !(dogfight != null ? dogfight.IsUnlocked : match.DogfightUnlocked))
+            if (requireDogfightUnlocked && match != null && !(dogfight != null ? dogfight.IsUnlocked : match.DogfightUnlocked))
             {
                 return ThreatEdge.None;
             }
 
-            Competitor player = match.Player;
-            Competitor opponent = match.Opponent;
+            if (lanSession != null && !lanSession.DogfightUnlocked)
+            {
+                return ThreatEdge.None;
+            }
+
+            Competitor player = match != null ? match.Player : lanSession != null ? lanSession.LocalPlayer : null;
+            Competitor opponent = match != null ? match.Opponent : lanSession != null ? lanSession.RemoteOpponent : null;
             if (player == null || opponent == null || player.Body == null || opponent.Body == null)
             {
                 return ThreatEdge.None;

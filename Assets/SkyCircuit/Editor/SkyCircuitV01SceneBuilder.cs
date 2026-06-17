@@ -20,7 +20,9 @@ namespace SkyCircuit.EditorTools
 
         static SkyCircuitV01SceneBuilder()
         {
-            if (Application.isBatchMode || SessionState.GetBool(AutoBuildSessionKey, false))
+            if (Application.isBatchMode
+                || EditorApplication.isPlayingOrWillChangePlaymode
+                || SessionState.GetBool(AutoBuildSessionKey, false))
             {
                 return;
             }
@@ -31,6 +33,12 @@ namespace SkyCircuit.EditorTools
         [MenuItem("Sky Circuit/Build V0.1 Flight Prototype Scene")]
         public static void BuildPrototypeScene()
         {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Debug.LogWarning("Cannot build the V0.1 flight prototype scene while Unity is in Play Mode.");
+                return;
+            }
+
             EnsureFolders();
 
             Material playerMaterial = CreateMaterial("SC_PlayerPrototype.mat", new Color(0.12f, 0.78f, 1f), new Color(0.1f, 0.55f, 1f));
@@ -72,7 +80,7 @@ namespace SkyCircuit.EditorTools
 
         private static void TryAutoBuildPrototypeScene()
         {
-            if (Application.isBatchMode)
+            if (Application.isBatchMode || EditorApplication.isPlayingOrWillChangePlaymode)
             {
                 return;
             }

@@ -182,8 +182,8 @@ namespace SkyCircuit.Menu
             int port = ParsePort(GetInputText(listenPortInput));
             SetInputText(listenPortInput, port.ToString());
             bootstrap.SetPort(port);
-            bool started = bootstrap.StartServer();
-            ShowServerStatus(started ? $"\u670d\u52a1\u7aef\u5df2\u5f00\u542f\uff0c\u7aef\u53e3 {port}" : bootstrap.StatusText);
+            bool started = bootstrap.StartHost();
+            ShowServerStatus(started ? $"\u4e3b\u673a\u5df2\u5f00\u542f\uff0c\u7aef\u53e3 {port}" : bootstrap.StatusText);
             RefreshStatusText();
         }
 
@@ -314,7 +314,7 @@ namespace SkyCircuit.Menu
         {
             if (serverButtonText != null)
             {
-                serverButtonText.text = serverRunning ? "\u5173\u95ed\u670d\u52a1\u7aef" : "\u5f00\u542f\u670d\u52a1\u7aef";
+                serverButtonText.text = serverRunning ? "\u5173\u95ed\u4e3b\u673a" : "\u5f00\u542f\u4e3b\u673a";
             }
         }
 

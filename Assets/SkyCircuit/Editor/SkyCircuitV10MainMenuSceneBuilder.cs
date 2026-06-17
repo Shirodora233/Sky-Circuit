@@ -22,6 +22,8 @@ namespace SkyCircuit.EditorTools
     public static class SkyCircuitV10MainMenuSceneBuilder
     {
         private const string ScenePath = "Assets/Scenes/V0_10_MainMenu.unity";
+        private const string OnlineCombatScenePath = "Assets/Scenes/V0_11_LanCloudSeaRacePrototype.unity";
+        private const string OnlineCombatFallbackScenePath = "Assets/Scenes/V0_8_LanMultiplayerPrototype.unity";
         private const string StartScenePath = "Assets/Scenes/V0_9_CloudSeaRacePrototype.unity";
         private const string StartFallbackScenePath = "Assets/Scenes/V0_6_PresentationSlice.unity";
         private const string TrainingScenePath = "Assets/Scenes/V0_1_FlightPrototype.unity";
@@ -41,13 +43,15 @@ namespace SkyCircuit.EditorTools
         private const string SettingsTitleTexturePath = MenuArtFolder + "/SC_MainMenuSettingsTitle.png";
         private const string CloudSeaMeshPath = "Assets/SkyCircuit/Art/SC_CloudSeaSurface.asset";
         private const string FogRingMeshPath = "Assets/SkyCircuit/Art/SC_HeightFogRing.asset";
-        private const string SceneRevisionMarker = "Main Menu Scene Revision 16";
-        private const string AutoBuildSessionKey = "SkyCircuit.V10.MainMenu.AutoBuildQueued.v16";
+        private const string SceneRevisionMarker = "Main Menu Scene Revision 17";
+        private const string AutoBuildSessionKey = "SkyCircuit.V10.MainMenu.AutoBuildQueued.v17";
         private const float CanvasScale = 0.00255f;
 
         static SkyCircuitV10MainMenuSceneBuilder()
         {
-            if (Application.isBatchMode || SessionState.GetBool(AutoBuildSessionKey, false))
+            if (Application.isBatchMode
+                || EditorApplication.isPlayingOrWillChangePlaymode
+                || SessionState.GetBool(AutoBuildSessionKey, false))
             {
                 return;
             }
@@ -58,7 +62,7 @@ namespace SkyCircuit.EditorTools
         [DidReloadScripts]
         private static void QueueRefreshAfterReload()
         {
-            if (Application.isBatchMode)
+            if (Application.isBatchMode || EditorApplication.isPlayingOrWillChangePlaymode)
             {
                 return;
             }
@@ -70,6 +74,12 @@ namespace SkyCircuit.EditorTools
         [MenuItem("Sky Circuit/Build V0.10 Main Menu Scene")]
         public static void BuildMainMenuScene()
         {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Debug.LogWarning("Cannot build the V0.10 main menu scene while Unity is in Play Mode.");
+                return;
+            }
+
             EnsureFolders();
             ConfigureMenuTexture(LogoTexturePath, 2048);
             ConfigureMenuTexture(IconTexturePath, 1024);
@@ -107,7 +117,7 @@ namespace SkyCircuit.EditorTools
 
         private static void TryAutoBuildScene()
         {
-            if (Application.isBatchMode)
+            if (Application.isBatchMode || EditorApplication.isPlayingOrWillChangePlaymode)
             {
                 return;
             }
@@ -338,7 +348,7 @@ namespace SkyCircuit.EditorTools
                 TickRate = (uint)Mathf.RoundToInt(stateSendRate),
                 ClientConnectionBufferTimeout = Mathf.CeilToInt(timeoutSeconds),
                 ConnectionApproval = true,
-                EnableSceneManagement = false,
+                EnableSceneManagement = true,
                 ForceSamePrefabs = false,
                 AutoSpawnPlayerPrefabClientSide = false,
             };
@@ -723,11 +733,9 @@ namespace SkyCircuit.EditorTools
                 new Vector2(900f, 44f),
                 new Vector2(0f, -444f));
 
-            string combatScene = File.Exists(StartScenePath)
-                ? Path.GetFileNameWithoutExtension(StartScenePath)
-                : Path.GetFileNameWithoutExtension(StartFallbackScenePath);
+            string combatScene = ResolveFirstExistingSceneName(OnlineCombatScenePath, OnlineCombatFallbackScenePath, StartScenePath, StartFallbackScenePath);
             string trainingScene = Path.GetFileNameWithoutExtension(TrainingScenePath);
-            controller.Configure(combatScene, trainingScene, settingsPanel.GameObject, statusText);
+            controller.Configure(combatScene, trainingScene, lanBootstrap, settingsPanel.GameObject, statusText);
 
             SkyCircuitMainMenuView view = canvasObject.AddComponent<SkyCircuitMainMenuView>();
             view.Configure(
@@ -1084,7 +1092,7 @@ namespace SkyCircuit.EditorTools
             CreateText("IP Scroll Arrows", ipList, "\u25b2\n\n\n\n\u25bc", font, 13, FontStyle.Bold, TextAnchor.MiddleCenter, new Color(0.42f, 0.44f, 0.47f, 0.8f), new Vector2(26f, 226f), new Vector2(178f, 0f)).raycastTarget = false;
             localIpListText.rectTransform.SetAsLastSibling();
 
-            Button startServerButton = CreateLanButton(serverSection, font, "\u5f00\u542f\u670d\u52a1\u7aef", new Vector2(-115f, -185f), new Vector2(310f, 56f), accent, Color.white, new Color(1f, 0.31f, 0.04f, 0.85f), 23);
+            Button startServerButton = CreateLanButton(serverSection, font, "\u5f00\u542f\u4e3b\u673a", new Vector2(-115f, -185f), new Vector2(310f, 56f), accent, Color.white, new Color(1f, 0.31f, 0.04f, 0.85f), 23);
             Button copyIpButton = CreateLanButton(serverSection, font, "\u590d\u5236 IP", new Vector2(158f, -185f), new Vector2(188f, 56f), Color.white, ink, border, 23);
 
             CreateLanLine(frame, "Bottom Separator", new Vector2(1230f, 1.5f), new Vector2(0f, -262f), new Color(0.76f, 0.79f, 0.82f, 0.28f));
@@ -1500,6 +1508,8 @@ namespace SkyCircuit.EditorTools
         {
             List<string> scenePaths = new List<string>();
             AddBuildScene(scenePaths, ScenePath);
+            AddBuildScene(scenePaths, OnlineCombatScenePath);
+            AddBuildScene(scenePaths, OnlineCombatFallbackScenePath);
             AddBuildScene(scenePaths, StartScenePath);
             AddBuildScene(scenePaths, StartFallbackScenePath);
             AddBuildScene(scenePaths, TrainingScenePath);
@@ -1531,6 +1541,19 @@ namespace SkyCircuit.EditorTools
             }
 
             scenePaths.Add(scenePath);
+        }
+
+        private static string ResolveFirstExistingSceneName(params string[] scenePaths)
+        {
+            foreach (string scenePath in scenePaths)
+            {
+                if (!string.IsNullOrEmpty(scenePath) && File.Exists(scenePath))
+                {
+                    return Path.GetFileNameWithoutExtension(scenePath);
+                }
+            }
+
+            return string.Empty;
         }
     }
 }

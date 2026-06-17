@@ -82,10 +82,14 @@ namespace SkyCircuit.Presentation
             MarkSegmentsDirty();
         }
 
+#if UNITY_EDITOR
+#pragma warning disable CS0114
         private void OnValidate()
         {
             MarkSegmentsDirty();
         }
+#pragma warning restore CS0114
+#endif
 
         private void LateUpdate()
         {

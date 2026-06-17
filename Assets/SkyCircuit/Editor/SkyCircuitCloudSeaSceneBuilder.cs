@@ -24,7 +24,9 @@ namespace SkyCircuit.EditorTools
 
         static SkyCircuitCloudSeaSceneBuilder()
         {
-            if (Application.isBatchMode || SessionState.GetBool(AutoBuildSessionKey, false))
+            if (Application.isBatchMode
+                || EditorApplication.isPlayingOrWillChangePlaymode
+                || SessionState.GetBool(AutoBuildSessionKey, false))
             {
                 return;
             }
@@ -35,7 +37,7 @@ namespace SkyCircuit.EditorTools
         [DidReloadScripts]
         private static void QueueCloudSeaRefreshAfterReload()
         {
-            if (Application.isBatchMode)
+            if (Application.isBatchMode || EditorApplication.isPlayingOrWillChangePlaymode)
             {
                 return;
             }
@@ -47,6 +49,12 @@ namespace SkyCircuit.EditorTools
         [MenuItem("Sky Circuit/Build V0.7 Cloud Sea Scene")]
         public static void BuildCloudSeaScene()
         {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Debug.LogWarning("Cannot build the V0.7 cloud sea scene while Unity is in Play Mode.");
+                return;
+            }
+
             EnsureFolders();
 
             Texture2D cloudTexture = EnsureCloudNoiseTexture();
@@ -74,7 +82,7 @@ namespace SkyCircuit.EditorTools
 
         private static void TryAutoBuildCloudSeaScene()
         {
-            if (Application.isBatchMode)
+            if (Application.isBatchMode || EditorApplication.isPlayingOrWillChangePlaymode)
             {
                 return;
             }

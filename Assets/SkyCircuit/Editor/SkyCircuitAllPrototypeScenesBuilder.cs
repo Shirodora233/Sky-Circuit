@@ -1,5 +1,6 @@
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using UnityEngine;
 
 namespace SkyCircuit.EditorTools
 {
@@ -17,6 +18,12 @@ namespace SkyCircuit.EditorTools
         [MenuItem("Sky Circuit/Build All Prototype Scenes")]
         public static void BuildAllPrototypeScenes()
         {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Debug.LogWarning("Cannot build prototype scenes while Unity is in Play Mode.");
+                return;
+            }
+
             SkyCircuitV01SceneBuilder.BuildPrototypeScene();
             SkyCircuitV02SceneBuilder.BuildMatchPrototypeScene();
             SkyCircuitV03SceneBuilder.BuildDogfightPrototypeScene();

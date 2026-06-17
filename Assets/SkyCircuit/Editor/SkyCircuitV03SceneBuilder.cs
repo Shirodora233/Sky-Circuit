@@ -19,6 +19,12 @@ namespace SkyCircuit.EditorTools
         [MenuItem("Sky Circuit/Build V0.3 Dogfight Prototype Scene")]
         public static void BuildDogfightPrototypeScene()
         {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Debug.LogWarning("Cannot build the V0.3 dogfight prototype scene while Unity is in Play Mode.");
+                return;
+            }
+
             EnsureFolders();
             if (!File.Exists(SourceScenePath))
             {

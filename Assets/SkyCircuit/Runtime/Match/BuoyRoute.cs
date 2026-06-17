@@ -42,7 +42,17 @@ namespace SkyCircuit.Match
                 return null;
             }
 
-            int index = Mathf.Clamp(competitor.TargetIndex, 0, buoys.Length - 1);
+            return GetTarget(competitor.TargetIndex);
+        }
+
+        public Transform GetTarget(int targetIndex)
+        {
+            if (buoys == null || buoys.Length == 0)
+            {
+                return null;
+            }
+
+            int index = Mathf.Clamp(targetIndex, 0, buoys.Length - 1);
             return buoys[index];
         }
 
@@ -72,6 +82,17 @@ namespace SkyCircuit.Match
 
         public void RefreshPlayerTargetVisual(Competitor player)
         {
+            if (player == null)
+            {
+                RefreshTargetVisual(0, false);
+                return;
+            }
+
+            RefreshTargetVisual(player.TargetIndex, player.BuoyScoreCount > 0);
+        }
+
+        public void RefreshTargetVisual(int targetIndex, bool hasCompletedAny)
+        {
             if (buoys == null)
             {
                 return;
@@ -82,14 +103,14 @@ namespace SkyCircuit.Match
                 SetBuoyMaterial(buoys[i], idleMaterial);
             }
 
-            if (player == null || buoys.Length == 0)
+            if (buoys.Length == 0)
             {
                 return;
             }
 
-            int target = Mathf.Clamp(player.TargetIndex, 0, buoys.Length - 1);
+            int target = Mathf.Clamp(targetIndex, 0, buoys.Length - 1);
             int previous = (target - 1 + buoys.Length) % buoys.Length;
-            if (player.Score > 0)
+            if (hasCompletedAny)
             {
                 SetBuoyMaterial(buoys[previous], completedMaterial);
             }

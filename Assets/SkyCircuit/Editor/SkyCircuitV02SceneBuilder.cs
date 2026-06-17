@@ -21,6 +21,12 @@ namespace SkyCircuit.EditorTools
         [MenuItem("Sky Circuit/Build V0.2 Match Prototype Scene")]
         public static void BuildMatchPrototypeScene()
         {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Debug.LogWarning("Cannot build the V0.2 match prototype scene while Unity is in Play Mode.");
+                return;
+            }
+
             EnsureFolders();
 
             Material playerMaterial = CreateMaterial("SC_PlayerPrototype.mat", new Color(0.12f, 0.78f, 1f), new Color(0.1f, 0.55f, 1f));

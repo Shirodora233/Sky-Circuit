@@ -19,6 +19,12 @@ namespace SkyCircuit.EditorTools
         [MenuItem("Sky Circuit/Build V0.4 Profile Prototype Scene")]
         public static void BuildProfilePrototypeScene()
         {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Debug.LogWarning("Cannot build the V0.4 profile prototype scene while Unity is in Play Mode.");
+                return;
+            }
+
             CreateFolder("Assets", "Scenes");
             SkyCircuitDefaultProfiles.ProfileSet profiles = SkyCircuitDefaultProfiles.EnsureDefaultProfiles(false);
 
