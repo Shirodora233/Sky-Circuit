@@ -52,17 +52,18 @@ namespace SkyCircuit.Menu
 
         public void ToggleSettings()
         {
+            OpenSettings();
+        }
+
+        public void OpenSettings()
+        {
             if (settingsPanel == null)
             {
-                ShowStatus("\u8bbe\u7f6e\u9762\u677f\u6682\u672a\u914d\u7f6e");
+                ShowStatus("\u8054\u673a\u9762\u677f\u6682\u672a\u914d\u7f6e");
                 return;
             }
 
-            settingsPanel.SetActive(!settingsPanel.activeSelf);
-            if (settingsPanel.activeSelf)
-            {
-                ShowStatus("\u8bbe\u7f6e\u5148\u4fdd\u7559\u8f7b\u91cf\u5165\u53e3");
-            }
+            settingsPanel.SetActive(true);
         }
 
         public void OpenTutorial()

@@ -36,8 +36,8 @@ namespace SkyCircuit.EditorTools
         private const string SettingsTitleTexturePath = MenuArtFolder + "/SC_MainMenuSettingsTitle.png";
         private const string CloudSeaMeshPath = "Assets/SkyCircuit/Art/SC_CloudSeaSurface.asset";
         private const string FogRingMeshPath = "Assets/SkyCircuit/Art/SC_HeightFogRing.asset";
-        private const string SceneRevisionMarker = "Main Menu Scene Revision 13";
-        private const string AutoBuildSessionKey = "SkyCircuit.V10.MainMenu.AutoBuildQueued.v13";
+        private const string SceneRevisionMarker = "Main Menu Scene Revision 14";
+        private const string AutoBuildSessionKey = "SkyCircuit.V10.MainMenu.AutoBuildQueued.v14";
         private const float CanvasScale = 0.00255f;
 
         static SkyCircuitV10MainMenuSceneBuilder()
@@ -648,11 +648,11 @@ namespace SkyCircuit.EditorTools
                 menuFont,
                 false,
                 new Color(0.04f, 0.5f, 1f, 1f));
-            UnityEventTools.AddPersistentListener(settingsCard.Button.onClick, controller.ToggleSettings);
+            UnityEventTools.AddPersistentListener(settingsCard.Button.onClick, controller.OpenSettings);
 
             logoRect.SetSiblingIndex(5);
 
-            SettingsPanelReferences settingsPanel = CreateSettingsPanel(canvasRect, menuFont, controller);
+            SettingsPanelReferences settingsPanel = CreateSettingsPanel(parent, menuFont, logoTexture, iconTexture, camera, controller);
             Text statusText = CreateText(
                 "Menu Status",
                 canvasRect,
@@ -879,38 +879,119 @@ namespace SkyCircuit.EditorTools
                 : new Vector2(-63f, 44f);
         }
 
-        private static SettingsPanelReferences CreateSettingsPanel(RectTransform parent, Font font, SkyCircuitMainMenuController controller)
+        private static SettingsPanelReferences CreateSettingsPanel(
+            Transform parent,
+            Font font,
+            Texture2D logoTexture,
+            Texture2D iconTexture,
+            Camera camera,
+            SkyCircuitMainMenuController controller)
         {
-            RectTransform panel = CreateRect("Settings Panel", parent, new Vector2(720f, 352f), new Vector2(0f, -106f));
-            Image background = panel.gameObject.AddComponent<Image>();
-            background.color = new Color(0.985f, 0.99f, 0.995f, 0.98f);
+            Color accent = new Color(1f, 0.31f, 0.04f, 1f);
+            Color ink = new Color(0.02f, 0.025f, 0.03f, 1f);
+            Color mutedInk = new Color(0.15f, 0.16f, 0.18f, 0.9f);
+            Color border = new Color(0.72f, 0.76f, 0.8f, 0.38f);
 
-            Shadow shadow = panel.gameObject.AddComponent<Shadow>();
-            shadow.effectColor = new Color(0f, 0f, 0f, 0.2f);
-            shadow.effectDistance = new Vector2(6f, -6f);
+            GameObject canvasObject = new GameObject("LAN Settings Canvas");
+            canvasObject.transform.SetParent(parent, false);
+
+            RectTransform overlayRect = canvasObject.AddComponent<RectTransform>();
+            overlayRect.sizeDelta = new Vector2(1280f, 720f);
+
+            Canvas overlayCanvas = canvasObject.AddComponent<Canvas>();
+            overlayCanvas.renderMode = RenderMode.ScreenSpaceCamera;
+            overlayCanvas.worldCamera = camera;
+            overlayCanvas.planeDistance = 0.4f;
+            overlayCanvas.sortingOrder = 80;
+
+            CanvasScaler overlayScaler = canvasObject.AddComponent<CanvasScaler>();
+            overlayScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            overlayScaler.referenceResolution = new Vector2(1280f, 720f);
+            overlayScaler.matchWidthOrHeight = 0.5f;
+
+            canvasObject.AddComponent<GraphicRaycaster>();
+
+            RectTransform panel = CreateStretchRect("Settings Panel", overlayRect, Vector2.zero, Vector2.zero);
+            Image panelBackground = panel.gameObject.AddComponent<Image>();
+            panelBackground.color = new Color(0.965f, 0.975f, 0.985f, 0.98f);
+
+            RectTransform frame = CreateRect("LAN Frame", panel, new Vector2(1230f, 672f), Vector2.zero);
+            Image frameBackground = frame.gameObject.AddComponent<Image>();
+            frameBackground.color = new Color(0.995f, 0.997f, 1f, 0.96f);
+
+            Outline frameOutline = frame.gameObject.AddComponent<Outline>();
+            frameOutline.effectColor = border;
+            frameOutline.effectDistance = new Vector2(1.4f, -1.4f);
+
+            Shadow frameShadow = frame.gameObject.AddComponent<Shadow>();
+            frameShadow.effectColor = new Color(0f, 0f, 0f, 0.08f);
+            frameShadow.effectDistance = new Vector2(5f, -5f);
+
+            CreateLanWatermark(frame, "Top Right Logo Watermark", logoTexture, new Vector2(190f, 124f), new Vector2(520f, 275f), 0.055f);
+            CreateLanLine(frame, "Title Separator", new Vector2(1230f, 1.5f), new Vector2(0f, 230f), new Color(0.76f, 0.79f, 0.82f, 0.28f));
+            CreateLanAccentBar(frame, new Vector2(-585f, 287f), new Vector2(6f, 64f), accent);
 
             Text titleText = CreateText(
                 "Settings Title",
-                panel,
-                "\u8bbe\u7f6e",
+                frame,
+                "\u5c40\u57df\u7f51\u8054\u673a",
                 font,
-                68,
+                58,
                 FontStyle.Bold,
                 TextAnchor.MiddleLeft,
-                new Color(0.02f, 0.025f, 0.03f, 1f),
-                new Vector2(300f, 72f),
-                new Vector2(-168f, 112f));
+                ink,
+                new Vector2(520f, 90f),
+                new Vector2(-300f, 296f));
+            titleText.raycastTarget = false;
 
-            Text volumeText = CreateSliderRow(panel, font, "\u4e3b\u97f3\u91cf", new Vector2(0f, 26f), 0.82f);
-            Text sensitivityText = CreateSliderRow(panel, font, "\u955c\u5934\u7075\u654f\u5ea6", new Vector2(0f, -58f), 0.62f);
+            RectTransform clientSection = CreateLanSection(frame, font, "Client Panel", "\u4f5c\u4e3a\u5ba2\u6237\u7aef", new Vector2(-302f, -20f), accent, border);
+            RectTransform serverSection = CreateLanSection(frame, font, "Server Panel", "\u4f5c\u4e3a\u670d\u52a1\u7aef", new Vector2(302f, -20f), accent, border);
 
-            Button close = CreateSmallButton(panel, font, "\u8fd4\u56de", new Vector2(214f, -126f), new Vector2(190f, 58f));
-            UnityEventTools.AddPersistentListener(close.onClick, controller.CloseSettings);
+            CreateLanWatermark(clientSection, "Client Watermark", logoTexture, new Vector2(180f, 118f), new Vector2(-176f, -145f), 0.045f);
+            CreateLanIconWatermark(clientSection, "Client Icon Watermark", iconTexture, new Rect(0.5f, 0f, 0.5f, 0.5f), new Vector2(156f, 138f), new Vector2(122f, -120f), 0.06f);
+            CreateLanIconWatermark(serverSection, "Server Icon Watermark", iconTexture, new Rect(0f, 0f, 0.5f, 0.5f), new Vector2(156f, 138f), new Vector2(136f, -120f), 0.055f);
 
-            RectTransform accent = CreateRect("Settings Orange Accent", panel, new Vector2(720f, 8f), new Vector2(0f, -172f));
-            Image accentImage = accent.gameObject.AddComponent<Image>();
-            accentImage.color = new Color(1f, 0.31f, 0.04f, 1f);
-            accentImage.raycastTarget = false;
+            CreateText("Target IP Label", clientSection, "\u76ee\u6807 IP", font, 22, FontStyle.Bold, TextAnchor.MiddleLeft, mutedInk, new Vector2(130f, 42f), new Vector2(-185f, 120.3f)).raycastTarget = false;
+            CreateLanField(clientSection, "Target IP Field", new Vector2(362f, 48f), new Vector2(75f, 118f), border);
+            CreateLanLine(clientSection, "Client Divider", new Vector2(520f, 1f), new Vector2(0f, 72f), new Color(0.82f, 0.85f, 0.88f, 0.22f));
+
+            CreateText("Port Label", clientSection, "\u7aef\u53e3", font, 22, FontStyle.Bold, TextAnchor.MiddleLeft, mutedInk, new Vector2(130f, 42f), new Vector2(-185f, 33.6f)).raycastTarget = false;
+            CreateLanField(clientSection, "Port Field", new Vector2(362f, 48f), new Vector2(75f, 28f), border);
+
+            RectTransform hint = CreateRect("Client Hint", clientSection, new Vector2(518f, 44f), new Vector2(0f, -60f));
+            Image hintImage = hint.gameObject.AddComponent<Image>();
+            hintImage.color = new Color(0.86f, 0.88f, 0.9f, 0.22f);
+            Text hintIcon = CreateText("Hint Icon", hint, "i", font, 22, FontStyle.Bold, TextAnchor.MiddleCenter, new Color(0.4f, 0.43f, 0.46f, 1f), new Vector2(28f, 32f), new Vector2(-236f, 0f));
+            hintIcon.raycastTarget = false;
+            CreateText("Hint Text", hint, "\u8f93\u5165\u670d\u52a1\u7aef\u5730\u5740\u540e\u52a0\u5165\u623f\u95f4", font, 18, FontStyle.Bold, TextAnchor.MiddleLeft, new Color(0.38f, 0.4f, 0.43f, 0.78f), new Vector2(410f, 32f), new Vector2(18f, 0f)).raycastTarget = false;
+
+            CreateLanButton(clientSection, font, "\u6e05\u7a7a", new Vector2(-154f, -185f), new Vector2(205f, 56f), Color.white, ink, border, 24);
+            CreateLanButton(clientSection, font, "\u8fde\u63a5", new Vector2(111f, -185f), new Vector2(294f, 56f), accent, Color.white, new Color(1f, 0.31f, 0.04f, 0.85f), 24);
+
+            CreateText("Listen Port Label", serverSection, "\u76d1\u542c\u7aef\u53e3", font, 22, FontStyle.Bold, TextAnchor.MiddleLeft, mutedInk, new Vector2(130f, 42f), new Vector2(-192.1f, 141.3f)).raycastTarget = false;
+            RectTransform listenField = CreateLanField(serverSection, "Listen Port Field", new Vector2(388f, 40f), new Vector2(55f, 138f), border);
+            CreateText("Listen Arrows", listenField, "\u25b2\n\u25bc", font, 15, FontStyle.Bold, TextAnchor.MiddleCenter, new Color(0.42f, 0.44f, 0.47f, 0.8f), new Vector2(26f, 34f), new Vector2(174f, 0f)).raycastTarget = false;
+
+            CreateText("Local IP Label", serverSection, "\u672c\u5730 IP", font, 22, FontStyle.Bold, TextAnchor.MiddleLeft, mutedInk, new Vector2(130f, 42f), new Vector2(-194.6f, 74.9f)).raycastTarget = false;
+            RectTransform ipList = CreateLanField(serverSection, "Local IP List", new Vector2(388f, 242f), new Vector2(55f, -28f), border);
+            for (int i = 0; i < 5; i++)
+            {
+                CreateLanLine(ipList, "IP Row Line " + i, new Vector2(336f, 1f), new Vector2(-12f, 80f - i * 42f), new Color(0.76f, 0.79f, 0.82f, 0.2f));
+            }
+
+            CreateLanLine(ipList, "IP Scroll Track", new Vector2(6f, 206f), new Vector2(178f, 0f), new Color(0.72f, 0.74f, 0.77f, 0.28f));
+            CreateLanLine(ipList, "IP Scroll Thumb", new Vector2(8f, 108f), new Vector2(178f, 34f), new Color(0.55f, 0.57f, 0.6f, 0.48f));
+            CreateText("IP Scroll Arrows", ipList, "\u25b2\n\n\n\n\u25bc", font, 13, FontStyle.Bold, TextAnchor.MiddleCenter, new Color(0.42f, 0.44f, 0.47f, 0.8f), new Vector2(26f, 226f), new Vector2(178f, 0f)).raycastTarget = false;
+
+            CreateLanButton(serverSection, font, "\u5f00\u542f\u670d\u52a1\u7aef", new Vector2(-115f, -185f), new Vector2(310f, 56f), accent, Color.white, new Color(1f, 0.31f, 0.04f, 0.85f), 23);
+            CreateLanButton(serverSection, font, "\u590d\u5236 IP", new Vector2(158f, -185f), new Vector2(188f, 56f), Color.white, ink, border, 23);
+
+            CreateLanLine(frame, "Bottom Separator", new Vector2(1230f, 1.5f), new Vector2(0f, -262f), new Color(0.76f, 0.79f, 0.82f, 0.28f));
+            CreateLanButton(frame, font, "\u5237\u65b0\u7f51\u7edc", new Vector2(-500f, -304f), new Vector2(182f, 48f), Color.white, ink, border, 22);
+            Button back = CreateLanButton(frame, font, "\u8fd4\u56de", new Vector2(280f, -304f), new Vector2(158f, 48f), Color.white, ink, border, 22);
+            Button confirm = CreateLanButton(frame, font, "\u786e\u5b9a", new Vector2(485f, -304f), new Vector2(200f, 48f), accent, Color.white, new Color(1f, 0.31f, 0.04f, 0.85f), 22, 4f);
+            UnityEventTools.AddPersistentListener(back.onClick, controller.CloseSettings);
+            UnityEventTools.AddPersistentListener(confirm.onClick, controller.CloseSettings);
 
             panel.gameObject.SetActive(false);
             return new SettingsPanelReferences
@@ -918,9 +999,132 @@ namespace SkyCircuit.EditorTools
                 GameObject = panel.gameObject,
                 PanelRect = panel,
                 TitleText = titleText,
-                RowTexts = new[] { volumeText, sensitivityText },
-                CloseButtonText = close.GetComponentInChildren<Text>(),
+                RowTexts = Array.Empty<Text>(),
+                CloseButtonText = back.GetComponentInChildren<Text>(),
             };
+        }
+
+        private static RectTransform CreateLanSection(
+            RectTransform parent,
+            Font font,
+            string name,
+            string title,
+            Vector2 position,
+            Color accent,
+            Color border)
+        {
+            RectTransform section = CreateRect(name, parent, new Vector2(570f, 460f), position);
+            Image background = section.gameObject.AddComponent<Image>();
+            background.color = new Color(1f, 1f, 1f, 0.58f);
+
+            Outline outline = section.gameObject.AddComponent<Outline>();
+            outline.effectColor = border;
+            outline.effectDistance = new Vector2(1.2f, -1.2f);
+
+            CreateLanAccentBar(section, new Vector2(-260f, 184f), new Vector2(5f, 32f), accent);
+            CreateText("Section Title", section, title, font, 27, FontStyle.Bold, TextAnchor.MiddleLeft, new Color(0.04f, 0.045f, 0.05f, 1f), new Vector2(245f, 42f), new Vector2(-112f, 190f)).raycastTarget = false;
+            CreateLanLine(section, "Section Title Rule", new Vector2(356f, 1f), new Vector2(126f, 184f), new Color(0.76f, 0.79f, 0.82f, 0.25f));
+            return section;
+        }
+
+        private static RectTransform CreateLanField(RectTransform parent, string name, Vector2 size, Vector2 position, Color border)
+        {
+            RectTransform field = CreateRect(name, parent, size, position);
+            Image image = field.gameObject.AddComponent<Image>();
+            image.color = new Color(1f, 1f, 1f, 0.72f);
+            image.raycastTarget = false;
+
+            Outline outline = field.gameObject.AddComponent<Outline>();
+            outline.effectColor = border;
+            outline.effectDistance = new Vector2(1f, -1f);
+            return field;
+        }
+
+        private static Button CreateLanButton(
+            RectTransform parent,
+            Font font,
+            string label,
+            Vector2 position,
+            Vector2 size,
+            Color backgroundColor,
+            Color textColor,
+            Color border,
+            int fontSize,
+            float labelOffsetY = 3f)
+        {
+            RectTransform rect = CreateRect(label + " Button", parent, size, position);
+            Image background = rect.gameObject.AddComponent<Image>();
+            background.color = backgroundColor;
+
+            Outline outline = rect.gameObject.AddComponent<Outline>();
+            outline.effectColor = border;
+            outline.effectDistance = new Vector2(1f, -1f);
+
+            Button button = rect.gameObject.AddComponent<Button>();
+            button.targetGraphic = background;
+            button.colors = BuildButtonColors();
+
+            Text text = CreateText("Label", rect, label, font, fontSize, FontStyle.Bold, TextAnchor.MiddleCenter, textColor, size, new Vector2(0f, labelOffsetY));
+            text.raycastTarget = false;
+            return button;
+        }
+
+        private static void CreateLanAccentBar(RectTransform parent, Vector2 position, Vector2 size, Color color)
+        {
+            RectTransform rect = CreateRect("Orange Accent", parent, size, position);
+            Image image = rect.gameObject.AddComponent<Image>();
+            image.color = color;
+            image.raycastTarget = false;
+        }
+
+        private static void CreateLanLine(RectTransform parent, string name, Vector2 size, Vector2 position, Color color)
+        {
+            RectTransform rect = CreateRect(name, parent, size, position);
+            Image image = rect.gameObject.AddComponent<Image>();
+            image.color = color;
+            image.raycastTarget = false;
+        }
+
+        private static void CreateLanWatermark(
+            RectTransform parent,
+            string name,
+            Texture2D texture,
+            Vector2 size,
+            Vector2 position,
+            float alpha)
+        {
+            if (texture == null)
+            {
+                return;
+            }
+
+            RectTransform rect = CreateRect(name, parent, size, position);
+            RawImage image = rect.gameObject.AddComponent<RawImage>();
+            image.texture = texture;
+            image.color = new Color(0.7f, 0.74f, 0.78f, alpha);
+            image.raycastTarget = false;
+        }
+
+        private static void CreateLanIconWatermark(
+            RectTransform parent,
+            string name,
+            Texture2D texture,
+            Rect uv,
+            Vector2 size,
+            Vector2 position,
+            float alpha)
+        {
+            if (texture == null)
+            {
+                return;
+            }
+
+            RectTransform rect = CreateRect(name, parent, size, position);
+            RawImage image = rect.gameObject.AddComponent<RawImage>();
+            image.texture = texture;
+            image.uvRect = uv;
+            image.color = new Color(0.7f, 0.74f, 0.78f, alpha);
+            image.raycastTarget = false;
         }
 
         private static Text CreateSliderRow(RectTransform parent, Font font, string label, Vector2 position, float value)

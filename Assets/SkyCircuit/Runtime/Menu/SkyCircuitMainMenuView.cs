@@ -39,14 +39,14 @@ namespace SkyCircuit.Menu
 
         [Header("Settings Panel")]
         [SerializeField] private RectTransform settingsPanelRect;
-        [SerializeField] private Vector2 settingsPanelSize = new Vector2(720f, 352f);
-        [SerializeField] private Vector2 settingsPanelPosition = new Vector2(0f, -106f);
+        [SerializeField] private Vector2 settingsPanelSize = new Vector2(1280f, 720f);
+        [SerializeField] private Vector2 settingsPanelPosition = Vector2.zero;
         [SerializeField] private Text settingsTitleText;
-        [SerializeField] private int settingsTitleFontSize = 68;
+        [SerializeField] private int settingsTitleFontSize = 58;
         [SerializeField] private Text[] settingsRowTexts = Array.Empty<Text>();
         [SerializeField] private int settingsRowFontSize = 34;
         [SerializeField] private Text closeButtonText;
-        [SerializeField] private int closeButtonFontSize = 30;
+        [SerializeField] private int closeButtonFontSize = 22;
         [SerializeField] private Text statusText;
         [SerializeField] private int statusFontSize = 28;
 
