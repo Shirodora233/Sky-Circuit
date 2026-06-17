@@ -10,20 +10,27 @@ namespace SkyCircuit.Networking
         private const string AnyIpv4Address = "0.0.0.0";
         private const string LocalhostAddress = "127.0.0.1";
         private const ushort FallbackPort = 7777;
-        private const float FallbackConnectTimeoutSeconds = 10f;
+        private const float FallbackConnectTimeoutSeconds = 3f;
         private static readonly Vector3[] DefaultSpawnPositions =
         {
             new Vector3(-8f, 18f, -35f),
             new Vector3(8f, 18f, -35f),
+        };
+        private static readonly Vector3[] DefaultSpawnEulerAngles =
+        {
+            new Vector3(0f, 18f, 0f),
+            new Vector3(0f, -18f, 0f),
         };
 
         [SerializeField] private LanConnectionSettings settings = null;
         [SerializeField] private NetworkManager networkManager;
         [SerializeField] private UnityTransport transport;
         [SerializeField] private string clientAddressOverride;
+        [SerializeField] private int portOverride;
         [SerializeField] private bool findSceneNetworkManager = true;
         [SerializeField] private bool createPlayerObjectWhenPrefabExists = true;
         [SerializeField] private Vector3[] playerSpawnPositions = DefaultSpawnPositions;
+        [SerializeField] private Vector3[] playerSpawnEulerAngles = DefaultSpawnEulerAngles;
 
         private string statusText = "Offline";
         private bool callbacksRegistered;
@@ -32,7 +39,7 @@ namespace SkyCircuit.Networking
         public LanConnectionSettings Settings => settings;
         public string ClientAddress => ResolveClientAddress();
         public string StatusText => statusText;
-        public ushort Port => settings != null ? settings.Port : FallbackPort;
+        public ushort Port => ResolvePort();
         public bool IsListening => networkManager != null && networkManager.IsListening;
         public bool IsHost => networkManager != null && networkManager.IsHost;
         public bool IsClient => networkManager != null && networkManager.IsClient;
@@ -68,6 +75,11 @@ namespace SkyCircuit.Networking
             clientAddressOverride = address != null ? address.Trim() : string.Empty;
         }
 
+        public void SetPort(int port)
+        {
+            portOverride = Mathf.Clamp(port, 1, ushort.MaxValue);
+        }
+
         public bool StartHost()
         {
             return StartHost(ResolveClientAddress());
@@ -87,6 +99,23 @@ namespace SkyCircuit.Networking
 
             bool started = networkManager.StartHost();
             statusText = started ? $"Hosting on port {Port}" : "Failed to start host";
+            return started;
+        }
+
+        public bool StartServer()
+        {
+            if (!CanStart("server"))
+            {
+                return false;
+            }
+
+            if (!ConfigureTransport(LocalhostAddress, true))
+            {
+                return false;
+            }
+
+            bool started = networkManager.StartServer();
+            statusText = started ? $"Serving on port {Port}" : "Failed to start server";
             return started;
         }
 
@@ -281,6 +310,16 @@ namespace SkyCircuit.Networking
 
         private int MaxPlayers => settings != null ? settings.MaxPlayers : 2;
 
+        private ushort ResolvePort()
+        {
+            if (portOverride > 0)
+            {
+                return (ushort)Mathf.Clamp(portOverride, 1, ushort.MaxValue);
+            }
+
+            return settings != null ? settings.Port : FallbackPort;
+        }
+
         private Vector3 ResolveSpawnPosition(int slotIndex)
         {
             if (playerSpawnPositions == null || playerSpawnPositions.Length == 0)
@@ -293,7 +332,12 @@ namespace SkyCircuit.Networking
 
         private Quaternion ResolveSpawnRotation(int slotIndex)
         {
-            return Quaternion.Euler(0f, slotIndex == 0 ? 18f : -18f, 0f);
+            if (playerSpawnEulerAngles == null || playerSpawnEulerAngles.Length == 0)
+            {
+                return Quaternion.Euler(DefaultSpawnEulerAngles[Mathf.Clamp(slotIndex, 0, DefaultSpawnEulerAngles.Length - 1)]);
+            }
+
+            return Quaternion.Euler(playerSpawnEulerAngles[Mathf.Clamp(slotIndex, 0, playerSpawnEulerAngles.Length - 1)]);
         }
 
         private static string NormalizeAddress(string address)

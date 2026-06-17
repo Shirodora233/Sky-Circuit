@@ -15,7 +15,7 @@ namespace SkyCircuit.Networking
 
         [Header("Session")]
         [SerializeField, Min(RequiredPlayerCount)] private int maxPlayers = RequiredPlayerCount;
-        [SerializeField, Min(1f)] private float connectTimeoutSeconds = 10f;
+        [SerializeField, Min(1f)] private float connectTimeoutSeconds = 3f;
 
         [Header("Replication Rates")]
         [SerializeField, Range(10f, 60f)] private float inputSendRate = 30f;

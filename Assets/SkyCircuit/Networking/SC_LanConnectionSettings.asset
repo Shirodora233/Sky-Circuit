@@ -15,7 +15,7 @@ MonoBehaviour:
   defaultHostAddress: 127.0.0.1
   port: 7777
   maxPlayers: 2
-  connectTimeoutSeconds: 10
+  connectTimeoutSeconds: 3
   inputSendRate: 30
   stateSendRate: 20
   remoteInterpolationDelay: 0.1

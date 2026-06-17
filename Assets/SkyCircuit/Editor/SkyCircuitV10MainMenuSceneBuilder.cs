@@ -2,7 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using SkyCircuit.Menu;
+using SkyCircuit.Networking;
 using SkyCircuit.Presentation;
+using Unity.Netcode;
+using Unity.Netcode.Transports.UTP;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEditor.Callbacks;
@@ -25,6 +28,8 @@ namespace SkyCircuit.EditorTools
         private const string AnimationsFolder = "Assets/SkyCircuit/Art/Animations";
         private const string MaterialsFolder = "Assets/SkyCircuit/Art/Materials";
         private const string MenuArtFolder = "Assets/SkyCircuit/Art/Menu";
+        private const string NetworkingFolder = "Assets/SkyCircuit/Networking";
+        private const string LanConnectionSettingsPath = NetworkingFolder + "/SC_LanConnectionSettings.asset";
         private const string MainMenuIdleAnimationPath = AnimationsFolder + "/SC_MainMenuIdleLightweight.anim";
         private const string MainMenuIdleControllerPath = AnimationsFolder + "/SC_MainMenuIdle.controller";
         private const string LogoTexturePath = MenuArtFolder + "/SC_MainMenuLogo.png";
@@ -36,8 +41,8 @@ namespace SkyCircuit.EditorTools
         private const string SettingsTitleTexturePath = MenuArtFolder + "/SC_MainMenuSettingsTitle.png";
         private const string CloudSeaMeshPath = "Assets/SkyCircuit/Art/SC_CloudSeaSurface.asset";
         private const string FogRingMeshPath = "Assets/SkyCircuit/Art/SC_HeightFogRing.asset";
-        private const string SceneRevisionMarker = "Main Menu Scene Revision 14";
-        private const string AutoBuildSessionKey = "SkyCircuit.V10.MainMenu.AutoBuildQueued.v14";
+        private const string SceneRevisionMarker = "Main Menu Scene Revision 16";
+        private const string AutoBuildSessionKey = "SkyCircuit.V10.MainMenu.AutoBuildQueued.v16";
         private const float CanvasScale = 0.00255f;
 
         static SkyCircuitV10MainMenuSceneBuilder()
@@ -86,8 +91,10 @@ namespace SkyCircuit.EditorTools
             ConfigureLightingAndSky();
             CreateEnvironment(environmentRoot.transform);
             Camera camera = CreateCamera();
+            LanConnectionSettings lanSettings = EnsureLanConnectionSettings();
+            LanNetworkBootstrap lanBootstrap = CreateLanNetworkRig(lanSettings);
             CreateFloatingCharacter(characterRoot.transform, camera, idleController);
-            CreateMainMenuCanvas(uiRoot.transform, camera);
+            CreateMainMenuCanvas(uiRoot.transform, camera, lanBootstrap);
             CreateEventSystem();
 
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -158,6 +165,7 @@ namespace SkyCircuit.EditorTools
             CreateFolder("Assets/SkyCircuit/Art", "Animations");
             CreateFolder("Assets/SkyCircuit/Art", "Menu");
             CreateFolder("Assets/SkyCircuit/Art", "Materials");
+            CreateFolder("Assets/SkyCircuit", "Networking");
         }
 
         private static void CreateFolder(string parent, string child)
@@ -296,6 +304,56 @@ namespace SkyCircuit.EditorTools
             material.SetColor("_BaseColor", color);
             EditorUtility.SetDirty(material);
             return material;
+        }
+
+        private static LanConnectionSettings EnsureLanConnectionSettings()
+        {
+            LanConnectionSettings settings = AssetDatabase.LoadAssetAtPath<LanConnectionSettings>(LanConnectionSettingsPath);
+            if (settings != null)
+            {
+                return settings;
+            }
+
+            settings = ScriptableObject.CreateInstance<LanConnectionSettings>();
+            AssetDatabase.CreateAsset(settings, LanConnectionSettingsPath);
+            EditorUtility.SetDirty(settings);
+            return settings;
+        }
+
+        private static LanNetworkBootstrap CreateLanNetworkRig(LanConnectionSettings settings)
+        {
+            GameObject networkObject = new GameObject("LAN Network Rig");
+            UnityTransport transport = networkObject.AddComponent<UnityTransport>();
+            ushort port = settings != null ? settings.Port : (ushort)7777;
+            string hostAddress = settings != null ? settings.DefaultHostAddress : "127.0.0.1";
+            float timeoutSeconds = settings != null ? settings.ConnectTimeoutSeconds : 3f;
+            float stateSendRate = settings != null ? settings.StateSendRate : 20f;
+            transport.SetConnectionData(hostAddress, port, "0.0.0.0");
+            transport.ConnectTimeoutMS = Mathf.RoundToInt(timeoutSeconds * 1000f);
+
+            NetworkManager networkManager = networkObject.AddComponent<NetworkManager>();
+            networkManager.NetworkConfig = new NetworkConfig
+            {
+                NetworkTransport = transport,
+                TickRate = (uint)Mathf.RoundToInt(stateSendRate),
+                ClientConnectionBufferTimeout = Mathf.CeilToInt(timeoutSeconds),
+                ConnectionApproval = true,
+                EnableSceneManagement = false,
+                ForceSamePrefabs = false,
+                AutoSpawnPlayerPrefabClientSide = false,
+            };
+
+            LanNetworkBootstrap bootstrap = networkObject.AddComponent<LanNetworkBootstrap>();
+            SerializedObject serialized = new SerializedObject(bootstrap);
+            serialized.FindProperty("settings").objectReferenceValue = settings;
+            serialized.FindProperty("networkManager").objectReferenceValue = networkManager;
+            serialized.FindProperty("transport").objectReferenceValue = transport;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            EditorUtility.SetDirty(transport);
+            EditorUtility.SetDirty(networkManager);
+            EditorUtility.SetDirty(bootstrap);
+            return bootstrap;
         }
 
         private static Camera CreateCamera()
@@ -545,7 +603,7 @@ namespace SkyCircuit.EditorTools
             UnityEngine.Object.DestroyImmediate(body.GetComponent<Collider>());
         }
 
-        private static void CreateMainMenuCanvas(Transform parent, Camera camera)
+        private static void CreateMainMenuCanvas(Transform parent, Camera camera, LanNetworkBootstrap lanBootstrap)
         {
             Texture2D logoTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(LogoTexturePath);
             Texture2D iconTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(IconTexturePath);
@@ -652,7 +710,7 @@ namespace SkyCircuit.EditorTools
 
             logoRect.SetSiblingIndex(5);
 
-            SettingsPanelReferences settingsPanel = CreateSettingsPanel(parent, menuFont, logoTexture, iconTexture, camera, controller);
+            SettingsPanelReferences settingsPanel = CreateSettingsPanel(parent, menuFont, logoTexture, iconTexture, camera, lanBootstrap, controller);
             Text statusText = CreateText(
                 "Menu Status",
                 canvasRect,
@@ -885,6 +943,7 @@ namespace SkyCircuit.EditorTools
             Texture2D logoTexture,
             Texture2D iconTexture,
             Camera camera,
+            LanNetworkBootstrap lanBootstrap,
             SkyCircuitMainMenuController controller)
         {
             Color accent = new Color(1f, 0.31f, 0.04f, 1f);
@@ -914,6 +973,7 @@ namespace SkyCircuit.EditorTools
             RectTransform panel = CreateStretchRect("Settings Panel", overlayRect, Vector2.zero, Vector2.zero);
             Image panelBackground = panel.gameObject.AddComponent<Image>();
             panelBackground.color = new Color(0.965f, 0.975f, 0.985f, 0.98f);
+            SkyCircuitLanSettingsPanelController lanPanelController = panel.gameObject.AddComponent<SkyCircuitLanSettingsPanelController>();
 
             RectTransform frame = CreateRect("LAN Frame", panel, new Vector2(1230f, 672f), Vector2.zero);
             Image frameBackground = frame.gameObject.AddComponent<Image>();
@@ -946,34 +1006,74 @@ namespace SkyCircuit.EditorTools
 
             RectTransform clientSection = CreateLanSection(frame, font, "Client Panel", "\u4f5c\u4e3a\u5ba2\u6237\u7aef", new Vector2(-302f, -20f), accent, border);
             RectTransform serverSection = CreateLanSection(frame, font, "Server Panel", "\u4f5c\u4e3a\u670d\u52a1\u7aef", new Vector2(302f, -20f), accent, border);
+            Text clientStatusText = CreateText("Client Status Text", clientSection, "\u672a\u8fde\u63a5", font, 17, FontStyle.Bold, TextAnchor.MiddleRight, new Color(0.18f, 0.2f, 0.23f, 0.78f), new Vector2(170f, 34f), new Vector2(180f, 196f));
+            Text serverStatusText = CreateText("Server Status Text", serverSection, "\u672a\u5f00\u542f", font, 17, FontStyle.Bold, TextAnchor.MiddleRight, new Color(0.18f, 0.2f, 0.23f, 0.78f), new Vector2(170f, 34f), new Vector2(180f, 196f));
+            clientStatusText.raycastTarget = false;
+            serverStatusText.raycastTarget = false;
 
             CreateLanWatermark(clientSection, "Client Watermark", logoTexture, new Vector2(180f, 118f), new Vector2(-176f, -145f), 0.045f);
             CreateLanIconWatermark(clientSection, "Client Icon Watermark", iconTexture, new Rect(0.5f, 0f, 0.5f, 0.5f), new Vector2(156f, 138f), new Vector2(122f, -120f), 0.06f);
             CreateLanIconWatermark(serverSection, "Server Icon Watermark", iconTexture, new Rect(0f, 0f, 0.5f, 0.5f), new Vector2(156f, 138f), new Vector2(136f, -120f), 0.055f);
 
             CreateText("Target IP Label", clientSection, "\u76ee\u6807 IP", font, 22, FontStyle.Bold, TextAnchor.MiddleLeft, mutedInk, new Vector2(130f, 42f), new Vector2(-185f, 120.3f)).raycastTarget = false;
-            CreateLanField(clientSection, "Target IP Field", new Vector2(362f, 48f), new Vector2(75f, 118f), border);
+            InputField targetIpInput = CreateLanInputField(
+                clientSection,
+                "Target IP Field",
+                font,
+                "127.0.0.1",
+                lanBootstrap != null ? lanBootstrap.ClientAddress : "127.0.0.1",
+                new Vector2(362f, 48f),
+                new Vector2(75f, 118f),
+                border,
+                64,
+                InputField.ContentType.Standard);
             CreateLanLine(clientSection, "Client Divider", new Vector2(520f, 1f), new Vector2(0f, 72f), new Color(0.82f, 0.85f, 0.88f, 0.22f));
 
             CreateText("Port Label", clientSection, "\u7aef\u53e3", font, 22, FontStyle.Bold, TextAnchor.MiddleLeft, mutedInk, new Vector2(130f, 42f), new Vector2(-185f, 33.6f)).raycastTarget = false;
-            CreateLanField(clientSection, "Port Field", new Vector2(362f, 48f), new Vector2(75f, 28f), border);
+            InputField clientPortInput = CreateLanInputField(
+                clientSection,
+                "Port Field",
+                font,
+                "7777",
+                (lanBootstrap != null ? lanBootstrap.Port : (ushort)7777).ToString(),
+                new Vector2(362f, 48f),
+                new Vector2(75f, 28f),
+                border,
+                5,
+                InputField.ContentType.IntegerNumber);
 
             RectTransform hint = CreateRect("Client Hint", clientSection, new Vector2(518f, 44f), new Vector2(0f, -60f));
             Image hintImage = hint.gameObject.AddComponent<Image>();
             hintImage.color = new Color(0.86f, 0.88f, 0.9f, 0.22f);
             Text hintIcon = CreateText("Hint Icon", hint, "i", font, 22, FontStyle.Bold, TextAnchor.MiddleCenter, new Color(0.4f, 0.43f, 0.46f, 1f), new Vector2(28f, 32f), new Vector2(-236f, 0f));
             hintIcon.raycastTarget = false;
-            CreateText("Hint Text", hint, "\u8f93\u5165\u670d\u52a1\u7aef\u5730\u5740\u540e\u52a0\u5165\u623f\u95f4", font, 18, FontStyle.Bold, TextAnchor.MiddleLeft, new Color(0.38f, 0.4f, 0.43f, 0.78f), new Vector2(410f, 32f), new Vector2(18f, 0f)).raycastTarget = false;
+            Text hintText = CreateText("Hint Text", hint, "\u8f93\u5165\u670d\u52a1\u7aef\u5730\u5740\u540e\u52a0\u5165\u623f\u95f4", font, 18, FontStyle.Bold, TextAnchor.MiddleLeft, new Color(0.38f, 0.4f, 0.43f, 0.78f), new Vector2(410f, 32f), new Vector2(18f, 0f));
+            hintText.raycastTarget = false;
 
-            CreateLanButton(clientSection, font, "\u6e05\u7a7a", new Vector2(-154f, -185f), new Vector2(205f, 56f), Color.white, ink, border, 24);
-            CreateLanButton(clientSection, font, "\u8fde\u63a5", new Vector2(111f, -185f), new Vector2(294f, 56f), accent, Color.white, new Color(1f, 0.31f, 0.04f, 0.85f), 24);
+            Button clearButton = CreateLanButton(clientSection, font, "\u6e05\u7a7a", new Vector2(-154f, -185f), new Vector2(205f, 56f), Color.white, ink, border, 24);
+            Button connectButton = CreateLanButton(clientSection, font, "\u8fde\u63a5", new Vector2(111f, -185f), new Vector2(294f, 56f), accent, Color.white, new Color(1f, 0.31f, 0.04f, 0.85f), 24);
 
             CreateText("Listen Port Label", serverSection, "\u76d1\u542c\u7aef\u53e3", font, 22, FontStyle.Bold, TextAnchor.MiddleLeft, mutedInk, new Vector2(130f, 42f), new Vector2(-192.1f, 141.3f)).raycastTarget = false;
             RectTransform listenField = CreateLanField(serverSection, "Listen Port Field", new Vector2(388f, 40f), new Vector2(55f, 138f), border);
+            InputField listenPortInput = listenField.gameObject.AddComponent<InputField>();
+            listenField.GetComponent<Image>().raycastTarget = true;
+            Text listenPortText = CreateText("Text", listenField, (lanBootstrap != null ? lanBootstrap.Port : (ushort)7777).ToString(), font, 18, FontStyle.Bold, TextAnchor.MiddleLeft, ink, new Vector2(320f, 34f), new Vector2(-16f, 0f));
+            Text listenPortPlaceholder = CreateText("Placeholder", listenField, "7777", font, 18, FontStyle.Bold, TextAnchor.MiddleLeft, new Color(0.42f, 0.44f, 0.47f, 0.46f), new Vector2(320f, 34f), new Vector2(-16f, 0f));
+            listenPortText.raycastTarget = false;
+            listenPortPlaceholder.raycastTarget = false;
+            listenPortInput.textComponent = listenPortText;
+            listenPortInput.placeholder = listenPortPlaceholder;
+            listenPortInput.targetGraphic = listenField.GetComponent<Image>();
+            listenPortInput.contentType = InputField.ContentType.IntegerNumber;
+            listenPortInput.characterLimit = 5;
+            listenPortInput.lineType = InputField.LineType.SingleLine;
+            listenPortInput.text = (lanBootstrap != null ? lanBootstrap.Port : (ushort)7777).ToString();
             CreateText("Listen Arrows", listenField, "\u25b2\n\u25bc", font, 15, FontStyle.Bold, TextAnchor.MiddleCenter, new Color(0.42f, 0.44f, 0.47f, 0.8f), new Vector2(26f, 34f), new Vector2(174f, 0f)).raycastTarget = false;
 
             CreateText("Local IP Label", serverSection, "\u672c\u5730 IP", font, 22, FontStyle.Bold, TextAnchor.MiddleLeft, mutedInk, new Vector2(130f, 42f), new Vector2(-194.6f, 74.9f)).raycastTarget = false;
             RectTransform ipList = CreateLanField(serverSection, "Local IP List", new Vector2(388f, 242f), new Vector2(55f, -28f), border);
+            Text localIpListText = CreateText("Local IP List Text", ipList, string.Empty, font, 18, FontStyle.Bold, TextAnchor.UpperLeft, new Color(0.12f, 0.14f, 0.16f, 0.82f), new Vector2(310f, 210f), new Vector2(-14f, -10f));
+            localIpListText.raycastTarget = false;
             for (int i = 0; i < 5; i++)
             {
                 CreateLanLine(ipList, "IP Row Line " + i, new Vector2(336f, 1f), new Vector2(-12f, 80f - i * 42f), new Color(0.76f, 0.79f, 0.82f, 0.2f));
@@ -982,14 +1082,22 @@ namespace SkyCircuit.EditorTools
             CreateLanLine(ipList, "IP Scroll Track", new Vector2(6f, 206f), new Vector2(178f, 0f), new Color(0.72f, 0.74f, 0.77f, 0.28f));
             CreateLanLine(ipList, "IP Scroll Thumb", new Vector2(8f, 108f), new Vector2(178f, 34f), new Color(0.55f, 0.57f, 0.6f, 0.48f));
             CreateText("IP Scroll Arrows", ipList, "\u25b2\n\n\n\n\u25bc", font, 13, FontStyle.Bold, TextAnchor.MiddleCenter, new Color(0.42f, 0.44f, 0.47f, 0.8f), new Vector2(26f, 226f), new Vector2(178f, 0f)).raycastTarget = false;
+            localIpListText.rectTransform.SetAsLastSibling();
 
-            CreateLanButton(serverSection, font, "\u5f00\u542f\u670d\u52a1\u7aef", new Vector2(-115f, -185f), new Vector2(310f, 56f), accent, Color.white, new Color(1f, 0.31f, 0.04f, 0.85f), 23);
-            CreateLanButton(serverSection, font, "\u590d\u5236 IP", new Vector2(158f, -185f), new Vector2(188f, 56f), Color.white, ink, border, 23);
+            Button startServerButton = CreateLanButton(serverSection, font, "\u5f00\u542f\u670d\u52a1\u7aef", new Vector2(-115f, -185f), new Vector2(310f, 56f), accent, Color.white, new Color(1f, 0.31f, 0.04f, 0.85f), 23);
+            Button copyIpButton = CreateLanButton(serverSection, font, "\u590d\u5236 IP", new Vector2(158f, -185f), new Vector2(188f, 56f), Color.white, ink, border, 23);
 
             CreateLanLine(frame, "Bottom Separator", new Vector2(1230f, 1.5f), new Vector2(0f, -262f), new Color(0.76f, 0.79f, 0.82f, 0.28f));
-            CreateLanButton(frame, font, "\u5237\u65b0\u7f51\u7edc", new Vector2(-500f, -304f), new Vector2(182f, 48f), Color.white, ink, border, 22);
+            Button refreshButton = CreateLanButton(frame, font, "\u5237\u65b0\u7f51\u7edc", new Vector2(-500f, -304f), new Vector2(182f, 48f), Color.white, ink, border, 22);
             Button back = CreateLanButton(frame, font, "\u8fd4\u56de", new Vector2(280f, -304f), new Vector2(158f, 48f), Color.white, ink, border, 22);
             Button confirm = CreateLanButton(frame, font, "\u786e\u5b9a", new Vector2(485f, -304f), new Vector2(200f, 48f), accent, Color.white, new Color(1f, 0.31f, 0.04f, 0.85f), 22, 4f);
+            lanPanelController.Configure(lanBootstrap, targetIpInput, clientPortInput, listenPortInput, localIpListText, clientStatusText, serverStatusText, connectButton.GetComponentInChildren<Text>(), startServerButton.GetComponentInChildren<Text>(), hintText);
+            EditorUtility.SetDirty(lanPanelController);
+            UnityEventTools.AddPersistentListener(clearButton.onClick, lanPanelController.ClearClientFields);
+            UnityEventTools.AddPersistentListener(connectButton.onClick, lanPanelController.StartClient);
+            UnityEventTools.AddPersistentListener(startServerButton.onClick, lanPanelController.StartServer);
+            UnityEventTools.AddPersistentListener(copyIpButton.onClick, lanPanelController.CopyPrimaryLocalIp);
+            UnityEventTools.AddPersistentListener(refreshButton.onClick, lanPanelController.RefreshNetworkInfo);
             UnityEventTools.AddPersistentListener(back.onClick, controller.CloseSettings);
             UnityEventTools.AddPersistentListener(confirm.onClick, controller.CloseSettings);
 
@@ -1038,6 +1146,63 @@ namespace SkyCircuit.EditorTools
             outline.effectColor = border;
             outline.effectDistance = new Vector2(1f, -1f);
             return field;
+        }
+
+        private static InputField CreateLanInputField(
+            RectTransform parent,
+            string name,
+            Font font,
+            string placeholder,
+            string initialText,
+            Vector2 size,
+            Vector2 position,
+            Color border,
+            int characterLimit,
+            InputField.ContentType contentType)
+        {
+            RectTransform field = CreateLanField(parent, name, size, position, border);
+            Image background = field.GetComponent<Image>();
+            background.raycastTarget = true;
+
+            InputField input = field.gameObject.AddComponent<InputField>();
+            input.targetGraphic = background;
+            input.contentType = contentType;
+            input.characterLimit = characterLimit;
+            input.lineType = InputField.LineType.SingleLine;
+            input.selectionColor = new Color(1f, 0.31f, 0.04f, 0.28f);
+
+            Text text = CreateText(
+                "Text",
+                field,
+                initialText,
+                font,
+                18,
+                FontStyle.Bold,
+                TextAnchor.MiddleLeft,
+                new Color(0.08f, 0.09f, 0.1f, 0.92f),
+                size - new Vector2(30f, 0f),
+                new Vector2(10f, 0f));
+            text.raycastTarget = false;
+            text.supportRichText = false;
+
+            Text placeholderText = CreateText(
+                "Placeholder",
+                field,
+                placeholder,
+                font,
+                18,
+                FontStyle.Bold,
+                TextAnchor.MiddleLeft,
+                new Color(0.42f, 0.44f, 0.47f, 0.46f),
+                size - new Vector2(30f, 0f),
+                new Vector2(10f, 0f));
+            placeholderText.raycastTarget = false;
+            placeholderText.supportRichText = false;
+
+            input.textComponent = text;
+            input.placeholder = placeholderText;
+            input.text = initialText ?? string.Empty;
+            return input;
         }
 
         private static Button CreateLanButton(
