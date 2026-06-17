@@ -4,6 +4,7 @@ using System.IO;
 using SkyCircuit.Menu;
 using SkyCircuit.Presentation;
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEditor.Callbacks;
 using UnityEditor.Events;
 using UnityEditor.SceneManagement;
@@ -21,8 +22,11 @@ namespace SkyCircuit.EditorTools
         private const string StartScenePath = "Assets/Scenes/V0_9_CloudSeaRacePrototype.unity";
         private const string StartFallbackScenePath = "Assets/Scenes/V0_6_PresentationSlice.unity";
         private const string TrainingScenePath = "Assets/Scenes/V0_1_FlightPrototype.unity";
+        private const string AnimationsFolder = "Assets/SkyCircuit/Art/Animations";
         private const string MaterialsFolder = "Assets/SkyCircuit/Art/Materials";
         private const string MenuArtFolder = "Assets/SkyCircuit/Art/Menu";
+        private const string MainMenuIdleAnimationPath = AnimationsFolder + "/SC_MainMenuIdleLightweight.anim";
+        private const string MainMenuIdleControllerPath = AnimationsFolder + "/SC_MainMenuIdle.controller";
         private const string LogoTexturePath = MenuArtFolder + "/SC_MainMenuLogo.png";
         private const string IconTexturePath = MenuArtFolder + "/SC_MainMenuIcons.png";
         private const string CombatPreviewTexturePath = MenuArtFolder + "/SC_MainMenuCombatPreviewBanner.jpg";
@@ -32,8 +36,8 @@ namespace SkyCircuit.EditorTools
         private const string SettingsTitleTexturePath = MenuArtFolder + "/SC_MainMenuSettingsTitle.png";
         private const string CloudSeaMeshPath = "Assets/SkyCircuit/Art/SC_CloudSeaSurface.asset";
         private const string FogRingMeshPath = "Assets/SkyCircuit/Art/SC_HeightFogRing.asset";
-        private const string SceneRevisionMarker = "Main Menu Scene Revision 12";
-        private const string AutoBuildSessionKey = "SkyCircuit.V10.MainMenu.AutoBuildQueued.v12";
+        private const string SceneRevisionMarker = "Main Menu Scene Revision 13";
+        private const string AutoBuildSessionKey = "SkyCircuit.V10.MainMenu.AutoBuildQueued.v13";
         private const float CanvasScale = 0.00255f;
 
         static SkyCircuitV10MainMenuSceneBuilder()
@@ -69,6 +73,7 @@ namespace SkyCircuit.EditorTools
             ConfigureMenuTexture(TrainingTitleTexturePath, 1024);
             ConfigureMenuTexture(TutorialTitleTexturePath, 1024);
             ConfigureMenuTexture(SettingsTitleTexturePath, 1024);
+            AnimatorController idleController = EnsureMainMenuIdleAnimatorController();
 
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             scene.name = "V0_10_MainMenu";
@@ -81,7 +86,7 @@ namespace SkyCircuit.EditorTools
             ConfigureLightingAndSky();
             CreateEnvironment(environmentRoot.transform);
             Camera camera = CreateCamera();
-            CreateFloatingCharacter(characterRoot.transform);
+            CreateFloatingCharacter(characterRoot.transform, camera, idleController);
             CreateMainMenuCanvas(uiRoot.transform, camera);
             CreateEventSystem();
 
@@ -150,6 +155,7 @@ namespace SkyCircuit.EditorTools
             CreateFolder("Assets", "Scenes");
             CreateFolder("Assets", "SkyCircuit");
             CreateFolder("Assets/SkyCircuit", "Art");
+            CreateFolder("Assets/SkyCircuit/Art", "Animations");
             CreateFolder("Assets/SkyCircuit/Art", "Menu");
             CreateFolder("Assets/SkyCircuit/Art", "Materials");
         }
@@ -296,24 +302,29 @@ namespace SkyCircuit.EditorTools
         {
             GameObject cameraObject = new GameObject("Main Camera");
             cameraObject.tag = "MainCamera";
-            cameraObject.transform.position = new Vector3(0f, 1.22f, -6.25f);
-            cameraObject.transform.rotation = Quaternion.LookRotation(new Vector3(-0.14f, 1.18f, 0.34f) - cameraObject.transform.position, Vector3.up);
+            cameraObject.transform.SetPositionAndRotation(
+                new Vector3(-0.56f, 1.28f, -4.89f),
+                new Quaternion(0.0030340103f, -0.010620309f, 0.00003222409f, 0.999939f));
 
             Camera camera = cameraObject.AddComponent<Camera>();
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = new Color(0.965f, 0.98f, 1f, 1f);
             camera.nearClipPlane = 0.05f;
             camera.farClipPlane = 20000f;
-            camera.fieldOfView = 35f;
+            camera.fieldOfView = 27.3f;
             cameraObject.AddComponent<AudioListener>();
             return camera;
         }
 
-        private static void CreateFloatingCharacter(Transform parent)
+        private static void CreateFloatingCharacter(
+            Transform parent,
+            Camera camera,
+            RuntimeAnimatorController idleController)
         {
             GameObject root = new GameObject("Floating Character");
             root.transform.SetParent(parent);
-            root.transform.SetPositionAndRotation(new Vector3(2.08f, 1.12f, 0.54f), Quaternion.Euler(0f, -16f, 0f));
+            root.transform.SetPositionAndRotation(new Vector3(1.22f, 1.12f, 3.41f), Quaternion.identity);
+            FaceCharacterTowardsCamera(root.transform, camera);
 
             GameObject prefab = LoadFirstCharacterPrefab();
             if (prefab != null)
@@ -325,6 +336,7 @@ namespace SkyCircuit.EditorTools
                 model.transform.localRotation = Quaternion.identity;
                 model.transform.localScale = Vector3.one;
                 NormalizeCharacterModel(model, root.transform);
+                ConfigureCharacterAnimator(model, camera, idleController);
             }
             else
             {
@@ -344,6 +356,64 @@ namespace SkyCircuit.EditorTools
             rimLight.color = new Color(0.55f, 0.86f, 1f);
         }
 
+        private static AnimatorController EnsureMainMenuIdleAnimatorController()
+        {
+            if (!File.Exists(MainMenuIdleAnimationPath))
+            {
+                Debug.LogWarning($"Main menu idle animation not found: {MainMenuIdleAnimationPath}");
+                return null;
+            }
+
+            AssetDatabase.ImportAsset(MainMenuIdleAnimationPath);
+            AnimationClip idleClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(MainMenuIdleAnimationPath);
+            if (idleClip == null)
+            {
+                Debug.LogWarning($"Main menu idle animation could not be loaded: {MainMenuIdleAnimationPath}");
+                return null;
+            }
+
+            AnimationClipSettings clipSettings = AnimationUtility.GetAnimationClipSettings(idleClip);
+            if (!clipSettings.loopTime)
+            {
+                clipSettings.loopTime = true;
+                AnimationUtility.SetAnimationClipSettings(idleClip, clipSettings);
+                EditorUtility.SetDirty(idleClip);
+            }
+
+            AnimatorController controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(MainMenuIdleControllerPath);
+            if (controller == null)
+            {
+                controller = AnimatorController.CreateAnimatorControllerAtPath(MainMenuIdleControllerPath);
+            }
+
+            AnimatorStateMachine stateMachine = controller.layers[0].stateMachine;
+            AnimatorState idleState = null;
+            foreach (ChildAnimatorState childState in stateMachine.states)
+            {
+                if (childState.state != null && childState.state.name == "Idle Loop")
+                {
+                    idleState = childState.state;
+                    break;
+                }
+            }
+
+            idleState ??= stateMachine.AddState("Idle Loop");
+            idleState.motion = idleClip;
+            idleState.speed = 1f;
+            idleState.writeDefaultValues = true;
+            stateMachine.defaultState = idleState;
+
+            AnimatorControllerLayer[] layers = controller.layers;
+            if (layers.Length > 0)
+            {
+                layers[0].iKPass = true;
+                controller.layers = layers;
+            }
+
+            EditorUtility.SetDirty(controller);
+            return controller;
+        }
+
         private static GameObject LoadFirstCharacterPrefab()
         {
             string[] guids = AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/Art" });
@@ -358,6 +428,58 @@ namespace SkyCircuit.EditorTools
             }
 
             return null;
+        }
+
+        private static void FaceCharacterTowardsCamera(Transform character, Camera camera)
+        {
+            if (character == null || camera == null)
+            {
+                return;
+            }
+
+            Vector3 toCamera = camera.transform.position - character.position;
+            toCamera.y = 0f;
+            if (toCamera.sqrMagnitude < 0.0001f)
+            {
+                return;
+            }
+
+            character.rotation = Quaternion.LookRotation(toCamera.normalized, Vector3.up);
+        }
+
+        private static void ConfigureCharacterAnimator(
+            GameObject model,
+            Camera camera,
+            RuntimeAnimatorController idleController)
+        {
+            if (model == null)
+            {
+                return;
+            }
+
+            Animator animator = model.GetComponent<Animator>() ?? model.GetComponentInChildren<Animator>();
+            if (animator == null)
+            {
+                return;
+            }
+
+            if (idleController != null)
+            {
+                animator.runtimeAnimatorController = idleController;
+            }
+
+            animator.applyRootMotion = false;
+            animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+
+            SkyCircuitMenuCharacterLookAtCamera lookAt = animator.GetComponent<SkyCircuitMenuCharacterLookAtCamera>();
+            if (lookAt == null)
+            {
+                lookAt = animator.gameObject.AddComponent<SkyCircuitMenuCharacterLookAtCamera>();
+            }
+
+            lookAt.Configure(camera);
+            EditorUtility.SetDirty(animator);
+            EditorUtility.SetDirty(lookAt);
         }
 
         private static void NormalizeCharacterModel(GameObject model, Transform root)
@@ -527,6 +649,8 @@ namespace SkyCircuit.EditorTools
                 false,
                 new Color(0.04f, 0.5f, 1f, 1f));
             UnityEventTools.AddPersistentListener(settingsCard.Button.onClick, controller.ToggleSettings);
+
+            logoRect.SetSiblingIndex(5);
 
             SettingsPanelReferences settingsPanel = CreateSettingsPanel(canvasRect, menuFont, controller);
             Text statusText = CreateText(
