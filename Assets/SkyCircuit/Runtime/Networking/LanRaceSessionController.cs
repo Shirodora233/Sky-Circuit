@@ -291,6 +291,11 @@ namespace SkyCircuit.Networking
             RefreshOfflineTutorialPresentationState();
         }
 
+        public void StartOfflineRace(Competitor localPlayer, Competitor remoteOpponent)
+        {
+            StartOfflineTutorial(localPlayer, remoteOpponent);
+        }
+
         public void StopOfflineTutorial()
         {
             offlineTutorialActive = false;

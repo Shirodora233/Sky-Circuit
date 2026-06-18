@@ -39,7 +39,7 @@ namespace SkyCircuit.EditorTools
         private const float PresentationMovementVerticalOffsetDegrees = 0f;
         private const float PresentationFieldOfView = 62f;
 
-        [MenuItem("Sky Circuit/Build V0.6 Presentation Slice Scene")]
+        [MenuItem("Sky Circuit/Legacy Scene Builders/Build V0.6 Presentation Slice Scene")]
         public static void BuildCharacterFlightDemoScene()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)

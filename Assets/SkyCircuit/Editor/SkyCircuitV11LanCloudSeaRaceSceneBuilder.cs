@@ -22,7 +22,7 @@ namespace SkyCircuit.EditorTools
     public static class SkyCircuitV11LanCloudSeaRaceSceneBuilder
     {
         private const string SourceScenePath = "Assets/Scenes/V0_9_CloudSeaRacePrototype.unity";
-        private const string ScenePath = "Assets/Scenes/V0_11_LanCloudSeaRacePrototype.unity";
+        private const string ScenePath = "Assets/SkyCircuit/Scenes/CloudSeaRace.unity";
         private const string SettingsFolder = "Assets/SkyCircuit/Networking";
         private const string RacePlayerPrefabPath = SettingsFolder + "/SC_LanRaceFlightPlayer.prefab";
         private const string ContrailTrailMaterialPath = SettingsFolder + "/SC_ContrailTrail.mat";
@@ -30,18 +30,18 @@ namespace SkyCircuit.EditorTools
         private static readonly MethodInfo NetworkObjectOnValidate =
             typeof(NetworkObject).GetMethod("OnValidate", BindingFlags.Instance | BindingFlags.NonPublic);
 
-        [MenuItem("Sky Circuit/Build V0.11 LAN Cloud Sea Race Prototype")]
+        [MenuItem("Sky Circuit/Build Cloud Sea Race Scene")]
         public static void BuildScene()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)
             {
-                Debug.LogWarning("Cannot build the V0.11 LAN cloud sea race scene while Unity is in Play Mode.");
+                Debug.LogWarning("Cannot build the cloud sea race scene while Unity is in Play Mode.");
                 return;
             }
 
             if (!File.Exists(SourceScenePath))
             {
-                Debug.LogWarning($"V0.11 source scene not found at {SourceScenePath}.");
+                Debug.LogWarning($"Cloud sea race source scene not found at {SourceScenePath}.");
                 return;
             }
 
@@ -52,7 +52,7 @@ namespace SkyCircuit.EditorTools
             GameObject gameplayRoot = FindRoot(scene, "Gameplay");
             if (gameplayRoot == null)
             {
-                Debug.LogWarning("V0.11 scene build could not find Gameplay root.");
+                Debug.LogWarning("Cloud sea race scene build could not find Gameplay root.");
                 return;
             }
 
@@ -64,7 +64,7 @@ namespace SkyCircuit.EditorTools
             GameObject racePlayerPrefab = EnsureRacePlayerPrefab(playerTemplate);
             if (racePlayerPrefab == null)
             {
-                Debug.LogWarning("V0.11 scene build could not create or load a LAN race player prefab.");
+                Debug.LogWarning("Cloud sea race scene build could not create or load a LAN race player prefab.");
                 return;
             }
 
@@ -81,7 +81,7 @@ namespace SkyCircuit.EditorTools
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            Debug.Log($"Sky Circuit V0.11 LAN cloud sea race scene built at {ScenePath}");
+            Debug.Log($"Sky Circuit cloud sea race scene built at {ScenePath}");
         }
 
         private static void EnsureFolders()
@@ -89,6 +89,7 @@ namespace SkyCircuit.EditorTools
             CreateFolder("Assets", "Scenes");
             CreateFolder("Assets", "SkyCircuit");
             CreateFolder("Assets/SkyCircuit", "Networking");
+            CreateFolder("Assets/SkyCircuit", "Scenes");
         }
 
         private static void CreateFolder(string parent, string child)

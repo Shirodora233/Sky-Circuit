@@ -1,5 +1,6 @@
 using System.Collections;
 using SkyCircuit.Networking;
+using SkyCircuit.Race;
 using SkyCircuit.Tutorial;
 using Unity.Netcode;
 using UnityEngine;
@@ -10,8 +11,8 @@ namespace SkyCircuit.Menu
 {
     public sealed class SkyCircuitMainMenuController : MonoBehaviour
     {
-        [SerializeField] private string combatSceneName = "V0_11_LanCloudSeaRacePrototype";
-        [SerializeField] private string trainingSceneName = "V0_1_FlightPrototype";
+        [SerializeField] private string combatSceneName = "CloudSeaRace";
+        [SerializeField] private string trainingSceneName = "CloudSeaRace";
         [SerializeField] private LanNetworkBootstrap lanBootstrap;
         [SerializeField] private GameObject settingsPanel;
         [SerializeField] private Text statusText;
@@ -56,6 +57,7 @@ namespace SkyCircuit.Menu
                 return;
             }
 
+            RaceLaunchRequest.Request(RaceMode.LanMultiplayer);
             if (TryLoadCombatAsNetworkScene())
             {
                 return;
@@ -72,6 +74,8 @@ namespace SkyCircuit.Menu
 
         public void OpenTraining()
         {
+            RaceLaunchRequest.Request(RaceMode.AiTraining);
+            ShutdownLanNetwork();
             LoadScene(trainingSceneName, "\u8bad\u7ec3\u573a\u666f\u8fd8\u6ca1\u6709\u52a0\u5165\u6784\u5efa");
         }
 
@@ -104,11 +108,8 @@ namespace SkyCircuit.Menu
             }
 
             SkyCircuitTutorialBootstrap.RequestTutorial();
-            NetworkManager networkManager = NetworkManager.Singleton;
-            if (networkManager != null && networkManager.IsListening)
-            {
-                networkManager.Shutdown();
-            }
+            RaceLaunchRequest.Request(RaceMode.Tutorial);
+            ShutdownLanNetwork();
 
             SceneManager.LoadScene(tutorialSceneName);
         }
@@ -145,6 +146,17 @@ namespace SkyCircuit.Menu
             }
 
             SceneManager.LoadScene(sceneName);
+        }
+
+        private void ShutdownLanNetwork()
+        {
+            NetworkManager networkManager = lanBootstrap != null && lanBootstrap.NetworkManager != null
+                ? lanBootstrap.NetworkManager
+                : NetworkManager.Singleton;
+            if (networkManager != null && networkManager.IsListening)
+            {
+                networkManager.Shutdown();
+            }
         }
 
         private bool HasEstablishedLanConnection()

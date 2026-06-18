@@ -1470,8 +1470,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5a32ea090fe1d2d4897aa2ae37e07289, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SkyCircuit.Menu.SkyCircuitMainMenuController
-  combatSceneName: V0_11_LanCloudSeaRacePrototype
-  trainingSceneName: V0_1_FlightPrototype
+  combatSceneName: CloudSeaRace
+  trainingSceneName: CloudSeaRace
   lanBootstrap: {fileID: 1157710019}
   settingsPanel: {fileID: 693344190}
   statusText: {fileID: 40033162}

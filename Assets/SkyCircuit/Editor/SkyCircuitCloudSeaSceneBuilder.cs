@@ -46,7 +46,7 @@ namespace SkyCircuit.EditorTools
             EditorApplication.delayCall += TryAutoBuildCloudSeaScene;
         }
 
-        [MenuItem("Sky Circuit/Build V0.7 Cloud Sea Scene")]
+        [MenuItem("Sky Circuit/Legacy Scene Builders/Build V0.7 Cloud Sea Scene")]
         public static void BuildCloudSeaScene()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)

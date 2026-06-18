@@ -30,7 +30,7 @@ namespace SkyCircuit.EditorTools
             EditorApplication.delayCall += TryAutoBuildPrototypeScene;
         }
 
-        [MenuItem("Sky Circuit/Build V0.1 Flight Prototype Scene")]
+        [MenuItem("Sky Circuit/Legacy Scene Builders/Build V0.1 Flight Prototype Scene")]
         public static void BuildPrototypeScene()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)

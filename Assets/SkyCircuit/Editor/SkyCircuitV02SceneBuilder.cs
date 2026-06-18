@@ -18,7 +18,7 @@ namespace SkyCircuit.EditorTools
         private const string ScenePath = "Assets/Scenes/V0_2_MatchPrototype.unity";
         private const string MaterialsFolder = "Assets/SkyCircuit/Art/Materials";
 
-        [MenuItem("Sky Circuit/Build V0.2 Match Prototype Scene")]
+        [MenuItem("Sky Circuit/Legacy Scene Builders/Build V0.2 Match Prototype Scene")]
         public static void BuildMatchPrototypeScene()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)

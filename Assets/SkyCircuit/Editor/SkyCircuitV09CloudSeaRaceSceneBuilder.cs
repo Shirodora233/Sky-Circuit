@@ -45,7 +45,7 @@ namespace SkyCircuit.EditorTools
             EditorApplication.delayCall += TryAutoBuildScene;
         }
 
-        [MenuItem("Sky Circuit/Build V0.9 Cloud Sea Race Prototype")]
+        [MenuItem("Sky Circuit/Legacy Scene Builders/Build V0.9 Cloud Sea Race Prototype")]
         public static void BuildScene()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)

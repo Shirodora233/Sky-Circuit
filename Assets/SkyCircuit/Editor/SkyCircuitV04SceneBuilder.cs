@@ -16,7 +16,7 @@ namespace SkyCircuit.EditorTools
         private const string SourceScenePath = "Assets/Scenes/V0_3_DogfightPrototype.unity";
         private const string ScenePath = "Assets/Scenes/V0_4_ProfilePrototype.unity";
 
-        [MenuItem("Sky Circuit/Build V0.4 Profile Prototype Scene")]
+        [MenuItem("Sky Circuit/Legacy Scene Builders/Build V0.4 Profile Prototype Scene")]
         public static void BuildProfilePrototypeScene()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)

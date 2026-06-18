@@ -22,8 +22,9 @@ namespace SkyCircuit.EditorTools
     public static class SkyCircuitV10MainMenuSceneBuilder
     {
         private const string ScenePath = "Assets/Scenes/V0_10_MainMenu.unity";
-        private const string OnlineCombatScenePath = "Assets/Scenes/V0_11_LanCloudSeaRacePrototype.unity";
-        private const string TrainingScenePath = "Assets/Scenes/V0_1_FlightPrototype.unity";
+        private const string RaceScenePath = "Assets/SkyCircuit/Scenes/CloudSeaRace.unity";
+        private const string OnlineCombatScenePath = RaceScenePath;
+        private const string TrainingScenePath = RaceScenePath;
         private const string AnimationsFolder = "Assets/SkyCircuit/Art/Animations";
         private const string MaterialsFolder = "Assets/SkyCircuit/Art/Materials";
         private const string MenuArtFolder = "Assets/SkyCircuit/Art/Menu";
@@ -68,7 +69,7 @@ namespace SkyCircuit.EditorTools
             EditorApplication.delayCall += TryAutoBuildScene;
         }
 
-        [MenuItem("Sky Circuit/Build V0.10 Main Menu Scene")]
+        [MenuItem("Sky Circuit/Legacy Scene Builders/Build V0.10 Main Menu Scene")]
         public static void BuildMainMenuScene()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)
@@ -173,6 +174,7 @@ namespace SkyCircuit.EditorTools
             CreateFolder("Assets/SkyCircuit/Art", "Menu");
             CreateFolder("Assets/SkyCircuit/Art", "Materials");
             CreateFolder("Assets/SkyCircuit", "Networking");
+            CreateFolder("Assets/SkyCircuit", "Scenes");
         }
 
         private static void CreateFolder(string parent, string child)

@@ -16,7 +16,7 @@ namespace SkyCircuit.EditorTools
         private const string MaterialsFolder = "Assets/SkyCircuit/Art/Materials";
         private const string BackHitTexturePath = "Assets/SkyCircuit/Art/Textures/SC_BackHitTriangle.png";
 
-        [MenuItem("Sky Circuit/Build V0.3 Dogfight Prototype Scene")]
+        [MenuItem("Sky Circuit/Legacy Scene Builders/Build V0.3 Dogfight Prototype Scene")]
         public static void BuildDogfightPrototypeScene()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)

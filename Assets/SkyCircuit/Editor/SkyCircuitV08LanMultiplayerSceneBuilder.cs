@@ -19,7 +19,7 @@ namespace SkyCircuit.EditorTools
         private const string PlayerPrefabPath = SettingsFolder + "/SC_LanFlightPlayer.prefab";
         private const string PlayerMaterialPath = SettingsFolder + "/SC_LanFlightPlayer.mat";
 
-        [MenuItem("Sky Circuit/Build V0.8 LAN Multiplayer Prototype Scene")]
+        [MenuItem("Sky Circuit/Legacy Scene Builders/Build V0.8 LAN Multiplayer Prototype Scene")]
         public static void BuildLanMultiplayerPrototypeScene()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)

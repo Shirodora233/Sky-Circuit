@@ -1,6 +1,7 @@
 using SkyCircuit.Combat;
 using SkyCircuit.Flight;
 using SkyCircuit.Match;
+using SkyCircuit.Networking;
 using SkyCircuit.Profiles;
 using UnityEngine;
 
@@ -14,6 +15,7 @@ namespace SkyCircuit.AI
         [SerializeField] private Competitor dogfightOpponent;
         [SerializeField] private BuoyRoute route;
         [SerializeField] private MatchController match;
+        [SerializeField] private LanRaceSessionController lanSession;
         [SerializeField] private DogfightController dogfight;
         [SerializeField] private float turnGain = 2.4f;
         [SerializeField] private float verticalRange = 18f;
@@ -42,6 +44,21 @@ namespace SkyCircuit.AI
             competitor = aiCompetitor;
             route = buoyRoute;
             match = matchController;
+            lanSession = null;
+            ApplyProfile(competitor != null ? competitor.Profile : null);
+        }
+
+        public void Configure(
+            SkyCircuitFlightController flightController,
+            Competitor aiCompetitor,
+            BuoyRoute buoyRoute,
+            LanRaceSessionController raceSession)
+        {
+            controller = flightController;
+            competitor = aiCompetitor;
+            route = buoyRoute;
+            match = null;
+            lanSession = raceSession;
             ApplyProfile(competitor != null ? competitor.Profile : null);
         }
 
@@ -99,7 +116,7 @@ namespace SkyCircuit.AI
                 return;
             }
 
-            if (match == null || match.Phase != MatchPhase.Running)
+            if (!IsRaceRunning())
             {
                 controller.SetInput(FlightInputState.Neutral);
                 return;
@@ -139,6 +156,21 @@ namespace SkyCircuit.AI
             float vertical = Mathf.Clamp(toTarget.y / verticalRange, -1f, 1f);
             bool boost = boostOnStraight && throttle > 0f && Mathf.Abs(turn) < 0.2f && Mathf.Abs(vertical) < 0.2f;
             controller.SetInput(new FlightInputState(throttle, turn, vertical, Vector2.zero, boost));
+        }
+
+        private bool IsRaceRunning()
+        {
+            if (match != null)
+            {
+                return match.Phase == MatchPhase.Running;
+            }
+
+            if (lanSession != null)
+            {
+                return lanSession.Phase == LanRacePhase.Running;
+            }
+
+            return false;
         }
 
         private bool TryGetDogfightTarget(Transform body, out Vector3 targetPosition)

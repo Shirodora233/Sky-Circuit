@@ -15,7 +15,7 @@ namespace SkyCircuit.EditorTools
             "Assets/Scenes/V0_6_PresentationSlice.unity",
         };
 
-        [MenuItem("Sky Circuit/Build All Prototype Scenes")]
+        [MenuItem("Sky Circuit/Legacy Scene Builders/Build All Prototype Scenes")]
         public static void BuildAllPrototypeScenes()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)
