@@ -1,5 +1,6 @@
 using System.Collections;
 using SkyCircuit.Networking;
+using SkyCircuit.Tutorial;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -92,7 +93,24 @@ namespace SkyCircuit.Menu
 
         public void OpenTutorial()
         {
-            ShowStatus("\u6559\u7a0b\u5185\u5bb9\u7a0d\u540e\u5f00\u653e");
+            string tutorialSceneName = !string.IsNullOrWhiteSpace(combatSceneName)
+                ? combatSceneName
+                : trainingSceneName;
+
+            if (string.IsNullOrWhiteSpace(tutorialSceneName) || !Application.CanStreamedLevelBeLoaded(tutorialSceneName))
+            {
+                ShowStatus("\u6559\u7a0b\u573a\u666f\u8fd8\u6ca1\u6709\u52a0\u5165\u6784\u5efa");
+                return;
+            }
+
+            SkyCircuitTutorialBootstrap.RequestTutorial();
+            NetworkManager networkManager = NetworkManager.Singleton;
+            if (networkManager != null && networkManager.IsListening)
+            {
+                networkManager.Shutdown();
+            }
+
+            SceneManager.LoadScene(tutorialSceneName);
         }
 
         public void QuitGame()

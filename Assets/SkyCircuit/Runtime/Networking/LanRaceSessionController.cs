@@ -110,9 +110,15 @@ namespace SkyCircuit.Networking
         private float localBackHitCooldown;
         private int localResult;
         private bool playerPrefabRegistered;
+        private bool offlineTutorialActive;
         private GUIStyle labelStyle;
         private GUIStyle titleStyle;
 
+        public GameObject RacePlayerPrefab => playerPrefab;
+        public BuoyRoute Route => route;
+        public Color HostTrailColor => hostTrailColor;
+        public Color ClientTrailColor => clientTrailColor;
+        public Color BoostTrailColor => boostTrailColor;
         public LanRacePhase Phase => DisplayPhase;
         public float RemainingTime => DisplayRemainingTime;
         public float CountdownRemaining => DisplayCountdownRemaining;
@@ -130,6 +136,7 @@ namespace SkyCircuit.Networking
         public bool DogfightUnlocked => DisplayLeftBuoyScore > 0 || DisplayRightBuoyScore > 0;
         public string LeftDisplayName => DisplayNameOf(competitors[0], "Host Pilot");
         public string RightDisplayName => DisplayNameOf(competitors[1], "Client Pilot");
+        public bool IsOfflineTutorialActive => offlineTutorialActive;
 
         private void Awake()
         {
@@ -151,6 +158,17 @@ namespace SkyCircuit.Networking
         {
             ResolveNetworkManager();
             RegisterPlayerPrefab();
+
+            if (offlineTutorialActive && (networkManager == null || !networkManager.IsListening))
+            {
+                UpdateOfflineTutorial();
+                return;
+            }
+
+            if (offlineTutorialActive)
+            {
+                offlineTutorialActive = false;
+            }
 
             if (!IsServerActive)
             {
@@ -198,6 +216,92 @@ namespace SkyCircuit.Networking
 
             PublishState();
             RefreshLocalPresentationState();
+        }
+
+        public Transform GetSpawnPoint(int slot)
+        {
+            return ResolveSpawnPoint(slot);
+        }
+
+        public void StartOfflineTutorial(Competitor localPlayer, Competitor remoteOpponent)
+        {
+            offlineTutorialActive = true;
+            ResetOwnerClientIds();
+
+            ConfigureOfflineTutorialSlot(0, localPlayer, true, "Host Pilot");
+            ConfigureOfflineTutorialSlot(1, remoteOpponent, false, "Client Pilot");
+
+            localRemainingTime = matchDuration;
+            localCountdownRemaining = 0f;
+            localBackHitCooldown = 0f;
+            localResult = 0;
+            SetLocalPhase(LanRacePhase.Running);
+
+            for (int i = 0; i < MaxSupportedPlayers; i++)
+            {
+                ResetCompetitorForMatch(competitors[i]);
+            }
+
+            route?.RefreshPlayerTargetVisual(competitors[0]);
+            RefreshOfflineTutorialPresentationState();
+        }
+
+        public void StopOfflineTutorial()
+        {
+            offlineTutorialActive = false;
+            SetLocalPhase(LanRacePhase.Offline);
+        }
+
+        private void ConfigureOfflineTutorialSlot(int slot, Competitor competitor, bool playerControlled, string displayName)
+        {
+            if (slot < 0 || slot >= MaxSupportedPlayers)
+            {
+                return;
+            }
+
+            competitors[slot] = competitor;
+            ownerClientIds[slot] = (ulong)slot;
+            if (competitor == null)
+            {
+                return;
+            }
+
+            SkyCircuitFlightController controller = competitor.GetComponent<SkyCircuitFlightController>();
+            competitor.Configure(
+                displayName,
+                playerControlled,
+                controller,
+                ResolveSpawnPoint(slot),
+                controller != null ? controller.Profile : null);
+        }
+
+        private void UpdateOfflineTutorial()
+        {
+            if (competitors[0] == null)
+            {
+                StopOfflineTutorial();
+                return;
+            }
+
+            if (localPhase != LanRacePhase.Running)
+            {
+                SetLocalPhase(LanRacePhase.Running);
+            }
+
+            localRemainingTime = matchDuration;
+            localCountdownRemaining = 0f;
+            localResult = 0;
+
+            route?.TryScore(competitors[0]);
+            route?.TryScore(competitors[1]);
+            UpdateBackHitScoring();
+            RefreshOfflineTutorialPresentationState();
+        }
+
+        private void RefreshOfflineTutorialPresentationState()
+        {
+            RefreshLocalRouteVisual();
+            RefreshBackHitFeedbacks();
         }
 
         private void OnGUI()
@@ -586,7 +690,13 @@ namespace SkyCircuit.Networking
             hit.Attacker.AddBackHitScore(backHitScore);
             localBackHitCooldown = hitCooldown;
             ApplyBackHitRepulsion(hit);
-            TriggerBackHitFeedbackClientRpc(hit.TargetSlot);
+            if (IsSpawned && IsServer)
+            {
+                TriggerBackHitFeedbackClientRpc(hit.TargetSlot);
+                return;
+            }
+
+            TriggerBackHitFeedbackLocally(hit.TargetSlot);
         }
 
         private void ApplyBackHitRepulsion(HitCandidate hit)
@@ -600,6 +710,11 @@ namespace SkyCircuit.Networking
 
         [ClientRpc]
         private void TriggerBackHitFeedbackClientRpc(int targetSlot)
+        {
+            TriggerBackHitFeedbackLocally(targetSlot);
+        }
+
+        private void TriggerBackHitFeedbackLocally(int targetSlot)
         {
             BackHitFeedback feedback = GetCompetitor(targetSlot) != null
                 ? GetCompetitor(targetSlot).GetComponentInChildren<BackHitFeedback>(true)
@@ -890,7 +1005,7 @@ namespace SkyCircuit.Networking
             }
 
             NetworkFlightInputBridge bridge = competitor.GetComponent<NetworkFlightInputBridge>();
-            if (bridge != null)
+            if (bridge != null && bridge.IsSpawned)
             {
                 bridge.ApplyRaceImpulse(velocityChange);
                 return;
