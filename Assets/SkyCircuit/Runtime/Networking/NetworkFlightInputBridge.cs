@@ -496,7 +496,10 @@ namespace SkyCircuit.Networking
             }
 
             Mouse mouse = Mouse.current;
-            if (mouse != null && mouse.leftButton.wasPressedThisFrame && Cursor.lockState != CursorLockMode.Locked)
+            if (mouse != null
+                && mouse.leftButton.wasPressedThisFrame
+                && Cursor.lockState != CursorLockMode.Locked
+                && !LanRaceRoomControlHud.IsPointerCaptured)
             {
                 LockCursor();
             }

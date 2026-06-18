@@ -5,6 +5,7 @@ using SkyCircuit.Flight;
 using SkyCircuit.Match;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace SkyCircuit.Networking
 {
@@ -15,6 +16,15 @@ namespace SkyCircuit.Networking
         Countdown,
         Running,
         Finished
+    }
+
+    public enum LanRaceRoomCloseReason
+    {
+        None,
+        LocalExit,
+        PeerExit,
+        PeerDisconnected,
+        ServerDisconnected
     }
 
     [DisallowMultipleComponent]
@@ -50,6 +60,10 @@ namespace SkyCircuit.Networking
         [SerializeField] private Rect hudArea = new Rect(18f, 18f, 520f, 245f);
         [SerializeField] private bool showContrailDebug = false;
         [SerializeField] private Rect contrailDebugArea = new Rect(18f, 272f, 850f, 190f);
+
+        [Header("Room Control")]
+        [SerializeField] private string mainMenuSceneName = "V0_10_MainMenu";
+        [SerializeField] private float roomCloseDelay = 0.85f;
 
         private readonly NetworkVariable<int> syncedPhase = new NetworkVariable<int>(
             (int)LanRacePhase.Offline,
@@ -111,6 +125,12 @@ namespace SkyCircuit.Networking
         private int localResult;
         private bool playerPrefabRegistered;
         private bool offlineTutorialActive;
+        private bool roomLifecycleCallbacksRegistered;
+        private bool roomWasReady;
+        private bool roomClosing;
+        private bool roomCloseCompleted;
+        private float roomCloseTimer;
+        private LanRaceRoomCloseReason roomCloseReason;
         private GUIStyle labelStyle;
         private GUIStyle titleStyle;
 
@@ -137,12 +157,21 @@ namespace SkyCircuit.Networking
         public string LeftDisplayName => DisplayNameOf(competitors[0], "Host Pilot");
         public string RightDisplayName => DisplayNameOf(competitors[1], "Client Pilot");
         public bool IsOfflineTutorialActive => offlineTutorialActive;
+        public bool IsRoomControlAvailable => !offlineTutorialActive
+            && !roomCloseCompleted
+            && (roomClosing || (networkManager != null && networkManager.IsListening));
+        public bool IsRoomClosing => roomClosing;
+        public string RoomCloseReasonText => RoomCloseReasonTextOf(roomCloseReason);
+        public string RoomStatusText => roomClosing
+            ? RoomCloseReasonText
+            : $"{DescribeMode()}  {DisplayConnectedPlayers}/{ExpectedPlayerCount}  {DisplayPhaseText}";
 
         private void Awake()
         {
             ResetOwnerClientIds();
             ResolveNetworkManager();
             RegisterPlayerPrefab();
+            RegisterRoomLifecycleCallbacks();
             localRemainingTime = matchDuration;
             localCountdownRemaining = countdownDuration;
         }
@@ -152,12 +181,25 @@ namespace SkyCircuit.Networking
             base.OnNetworkSpawn();
             ResolveNetworkManager();
             RegisterPlayerPrefab();
+            RegisterRoomLifecycleCallbacks();
+        }
+
+        public override void OnDestroy()
+        {
+            UnregisterRoomLifecycleCallbacks();
+            base.OnDestroy();
         }
 
         private void Update()
         {
             ResolveNetworkManager();
             RegisterPlayerPrefab();
+            RegisterRoomLifecycleCallbacks();
+
+            if (UpdateRoomClosure())
+            {
+                return;
+            }
 
             if (offlineTutorialActive && (networkManager == null || !networkManager.IsListening))
             {
@@ -179,6 +221,7 @@ namespace SkyCircuit.Networking
                 }
 
                 RefreshLocalPresentationState();
+                UpdateRoomReadiness();
                 return;
             }
 
@@ -194,6 +237,7 @@ namespace SkyCircuit.Networking
 
                 PublishState();
                 RefreshLocalPresentationState();
+                UpdateRoomReadiness();
                 return;
             }
 
@@ -216,6 +260,7 @@ namespace SkyCircuit.Networking
 
             PublishState();
             RefreshLocalPresentationState();
+            UpdateRoomReadiness();
         }
 
         public Transform GetSpawnPoint(int slot)
@@ -250,6 +295,120 @@ namespace SkyCircuit.Networking
         {
             offlineTutorialActive = false;
             SetLocalPhase(LanRacePhase.Offline);
+        }
+
+        public void RequestLeaveRoom()
+        {
+            if (roomClosing || roomCloseCompleted)
+            {
+                return;
+            }
+
+            if (offlineTutorialActive)
+            {
+                StopOfflineTutorial();
+                BeginLocalRoomClosure(LanRaceRoomCloseReason.LocalExit, 0.05f);
+                return;
+            }
+
+            ResolveNetworkManager();
+            if (networkManager == null || !networkManager.IsListening)
+            {
+                BeginLocalRoomClosure(LanRaceRoomCloseReason.LocalExit, 0.05f);
+                return;
+            }
+
+            if (IsServerActive)
+            {
+                BeginNetworkRoomClosure(
+                    LanRaceRoomCloseReason.LocalExit,
+                    LanRaceRoomCloseReason.PeerExit);
+                return;
+            }
+
+            if (IsSpawned && IsClient)
+            {
+                RequestLeaveRoomServerRpc();
+            }
+
+            BeginLocalRoomClosure(LanRaceRoomCloseReason.LocalExit, roomCloseDelay);
+        }
+
+        [ServerRpc(RequireOwnership = false)]
+        private void RequestLeaveRoomServerRpc(ServerRpcParams rpcParams = default)
+        {
+            BeginNetworkRoomClosure(
+                LanRaceRoomCloseReason.PeerExit,
+                LanRaceRoomCloseReason.PeerExit);
+        }
+
+        [ClientRpc]
+        private void NotifyRoomClosingClientRpc(int reasonCode)
+        {
+            BeginLocalRoomClosure(ToRoomCloseReason(reasonCode), roomCloseDelay);
+        }
+
+        private void BeginNetworkRoomClosure(
+            LanRaceRoomCloseReason localReason,
+            LanRaceRoomCloseReason remoteReason)
+        {
+            BeginLocalRoomClosure(localReason, roomCloseDelay);
+            if (IsSpawned && IsServer)
+            {
+                NotifyRoomClosingClientRpc((int)remoteReason);
+            }
+        }
+
+        private void BeginLocalRoomClosure(LanRaceRoomCloseReason reason, float delay)
+        {
+            if (roomCloseCompleted)
+            {
+                return;
+            }
+
+            roomClosing = true;
+            if (roomCloseReason == LanRaceRoomCloseReason.None || reason == LanRaceRoomCloseReason.LocalExit)
+            {
+                roomCloseReason = reason;
+            }
+
+            roomCloseTimer = Mathf.Max(roomCloseTimer, Mathf.Max(0.01f, delay));
+        }
+
+        private bool UpdateRoomClosure()
+        {
+            if (!roomClosing || roomCloseCompleted)
+            {
+                return false;
+            }
+
+            roomCloseTimer -= Time.unscaledDeltaTime;
+            if (roomCloseTimer <= 0f)
+            {
+                CompleteRoomClosure();
+            }
+
+            return true;
+        }
+
+        private void CompleteRoomClosure()
+        {
+            if (roomCloseCompleted)
+            {
+                return;
+            }
+
+            roomCloseCompleted = true;
+            roomClosing = false;
+            if (networkManager != null && networkManager.IsListening)
+            {
+                networkManager.Shutdown();
+            }
+
+            if (!string.IsNullOrWhiteSpace(mainMenuSceneName) && Application.CanStreamedLevelBeLoaded(mainMenuSceneName))
+            {
+                SceneManager.LoadScene(mainMenuSceneName);
+            }
         }
 
         private void ConfigureOfflineTutorialSlot(int slot, Competitor competitor, bool playerControlled, string displayName)
@@ -761,6 +920,72 @@ namespace SkyCircuit.Networking
             }
         }
 
+        private void RegisterRoomLifecycleCallbacks()
+        {
+            if (roomLifecycleCallbacksRegistered || networkManager == null)
+            {
+                return;
+            }
+
+            networkManager.OnClientDisconnectCallback += HandleRoomClientDisconnected;
+            roomLifecycleCallbacksRegistered = true;
+        }
+
+        private void UnregisterRoomLifecycleCallbacks()
+        {
+            if (!roomLifecycleCallbacksRegistered || networkManager == null)
+            {
+                return;
+            }
+
+            networkManager.OnClientDisconnectCallback -= HandleRoomClientDisconnected;
+            roomLifecycleCallbacksRegistered = false;
+        }
+
+        private void HandleRoomClientDisconnected(ulong clientId)
+        {
+            if (roomClosing || roomCloseCompleted || offlineTutorialActive || networkManager == null)
+            {
+                return;
+            }
+
+            if (networkManager.IsServer)
+            {
+                if (clientId == networkManager.LocalClientId || !roomWasReady)
+                {
+                    return;
+                }
+
+                BeginNetworkRoomClosure(
+                    LanRaceRoomCloseReason.PeerDisconnected,
+                    LanRaceRoomCloseReason.PeerDisconnected);
+                return;
+            }
+
+            if (networkManager.IsClient && clientId == NetworkManager.ServerClientId)
+            {
+                BeginLocalRoomClosure(LanRaceRoomCloseReason.ServerDisconnected, roomCloseDelay);
+            }
+        }
+
+        private void UpdateRoomReadiness()
+        {
+            if (offlineTutorialActive || roomWasReady || networkManager == null || !networkManager.IsListening)
+            {
+                return;
+            }
+
+            if (ConnectedCompetitorCount >= ExpectedPlayerCount
+                || ConnectedNetworkClientCount >= ExpectedPlayerCount
+                || DisplayConnectedPlayers >= ExpectedPlayerCount
+                || DisplayPhase == LanRacePhase.Countdown
+                || DisplayPhase == LanRacePhase.Running
+                || DisplayPhase == LanRacePhase.Finished)
+            {
+                roomWasReady = true;
+            }
+        }
+
         private void RegisterPlayerPrefab()
         {
             if (playerPrefabRegistered || networkManager == null || playerPrefab == null)
@@ -871,6 +1096,9 @@ namespace SkyCircuit.Networking
         private bool CanWriteNetworkState => IsSpawned && IsServer;
         private int ExpectedPlayerCount => Mathf.Clamp(expectedPlayers, 1, MaxSupportedPlayers);
         private int ConnectedCompetitorCount => CountCompetitors();
+        private int ConnectedNetworkClientCount => networkManager != null && networkManager.ConnectedClientsIds != null
+            ? networkManager.ConnectedClientsIds.Count
+            : 0;
 
         private LanRacePhase DisplayPhase => IsSpawned
             ? (LanRacePhase)Mathf.Clamp(syncedPhase.Value, (int)LanRacePhase.Offline, (int)LanRacePhase.Finished)
@@ -1042,6 +1270,28 @@ namespace SkyCircuit.Networking
                 2 => "Client Pilot Wins",
                 3 => "Draw",
                 _ => "Race Finished",
+            };
+        }
+
+        private static LanRaceRoomCloseReason ToRoomCloseReason(int reasonCode)
+        {
+            if (Enum.IsDefined(typeof(LanRaceRoomCloseReason), reasonCode))
+            {
+                return (LanRaceRoomCloseReason)reasonCode;
+            }
+
+            return LanRaceRoomCloseReason.PeerDisconnected;
+        }
+
+        private static string RoomCloseReasonTextOf(LanRaceRoomCloseReason reason)
+        {
+            return reason switch
+            {
+                LanRaceRoomCloseReason.LocalExit => "\u6b63\u5728\u9000\u51fa\u623f\u95f4",
+                LanRaceRoomCloseReason.PeerExit => "\u5bf9\u65b9\u5df2\u9000\u51fa\u623f\u95f4",
+                LanRaceRoomCloseReason.PeerDisconnected => "\u5bf9\u65b9\u8fde\u63a5\u5df2\u65ad\u5f00",
+                LanRaceRoomCloseReason.ServerDisconnected => "\u4e3b\u673a\u8fde\u63a5\u5df2\u65ad\u5f00",
+                _ => "\u623f\u95f4\u6b63\u5728\u5173\u95ed",
             };
         }
 
