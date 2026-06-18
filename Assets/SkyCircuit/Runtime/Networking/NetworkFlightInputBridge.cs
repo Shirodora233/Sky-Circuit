@@ -4,6 +4,7 @@ using SkyCircuit.Presentation;
 using Unity.Netcode;
 using Unity.Netcode.Components;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 
@@ -499,10 +500,16 @@ namespace SkyCircuit.Networking
             if (mouse != null
                 && mouse.leftButton.wasPressedThisFrame
                 && Cursor.lockState != CursorLockMode.Locked
-                && !LanRaceRoomControlHud.IsPointerCaptured)
+                && !ShouldIgnoreCursorLockClick())
             {
                 LockCursor();
             }
+        }
+
+        private static bool ShouldIgnoreCursorLockClick()
+        {
+            return LanRaceRoomControlHud.IsPointerCaptured
+                || (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject());
         }
 
         private static void LockCursor()

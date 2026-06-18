@@ -5,6 +5,7 @@ using SkyCircuit.Flight;
 using SkyCircuit.Match;
 using SkyCircuit.Networking;
 using SkyCircuit.Presentation;
+using SkyCircuit.Profiles;
 using Unity.Netcode;
 using Unity.Netcode.Components;
 using UnityEngine;
@@ -49,6 +50,7 @@ namespace SkyCircuit.Race
 
             localPlayer = PreparePilot(session, hostPilot, 0, true);
             aiOpponent = PreparePilot(session, clientPilot, 1, false);
+            ApplyOfflineProfiles(localPlayer, aiOpponent);
             ConfigureCamera(hostPilot);
             session.StartOfflineRace(localPlayer, aiOpponent);
             return true;
@@ -250,6 +252,14 @@ namespace SkyCircuit.Race
 
             aiPilot.enabled = true;
             aiPilot.Configure(controller, competitor, session.Route, session);
+        }
+
+        private static void ApplyOfflineProfiles(Competitor localPlayer, Competitor aiOpponent)
+        {
+            CompetitorProfile playerProfile = RaceProfileCatalog.ResolveDefault(RaceLaunchRequest.ResolvePlayerArchetype());
+            CompetitorProfile aiProfile = RaceProfileCatalog.ResolveDefault(RaceLaunchRequest.ResolveAiArchetype());
+            localPlayer?.SetProfile(playerProfile, true);
+            aiOpponent?.SetProfile(aiProfile, true);
         }
 
         private static void ConfigureContrails(LanRaceSessionController session, GameObject pilot, int slot)

@@ -134,7 +134,7 @@ namespace SkyCircuit.Networking
 
             Rect buttonRect = new Rect(rect.xMax - 74f, rect.y + 7f, 60f, 28f);
             GUI.enabled = !session.IsRoomClosing;
-            if (GUI.Button(buttonRect, "\u623f\u95f4", buttonStyle))
+            if (GUI.Button(buttonRect, session.IsOfflineRoomControl ? "\u8bad\u7ec3" : "\u623f\u95f4", buttonStyle))
             {
                 panelOpen = true;
                 confirmExit = false;
@@ -159,21 +159,30 @@ namespace SkyCircuit.Networking
 
             DrawAccent(rect);
 
-            GUI.Label(new Rect(rect.x + 28f, rect.y + 22f, rect.width - 56f, 34f), "\u623f\u95f4\u72b6\u6001", titleStyle);
+            GUI.Label(
+                new Rect(rect.x + 28f, rect.y + 22f, rect.width - 56f, 34f),
+                session.IsOfflineRoomControl ? "\u8bad\u7ec3\u72b6\u6001" : "\u623f\u95f4\u72b6\u6001",
+                titleStyle);
             GUI.Label(new Rect(rect.x + 30f, rect.y + 66f, rect.width - 60f, 34f), session.RoomStatusText, labelStyle);
 
             if (session.IsRoomClosing)
             {
                 GUI.Label(
                     new Rect(rect.x + 30f, rect.y + 110f, rect.width - 60f, 44f),
-                    "\u6b63\u5728\u5173\u95ed\u8054\u673a\u623f\u95f4\uff0c\u53cc\u65b9\u4f1a\u8fd4\u56de\u4e3b\u83dc\u5355\u3002",
+                    session.IsOfflineRoomControl
+                        ? "\u6b63\u5728\u9000\u51fa\u8bad\u7ec3\uff0c\u5c06\u8fd4\u56de\u4e3b\u83dc\u5355\u3002"
+                        : "\u6b63\u5728\u5173\u95ed\u8054\u673a\u623f\u95f4\uff0c\u53cc\u65b9\u4f1a\u8fd4\u56de\u4e3b\u83dc\u5355\u3002",
                     mutedStyle);
                 return;
             }
 
             string body = confirmExit
-                ? "\u786e\u8ba4\u9000\u51fa\u623f\u95f4\uff1f\u5bf9\u65b9\u4e5f\u4f1a\u6536\u5230\u623f\u95f4\u5173\u95ed\u72b6\u6001\u5e76\u8fd4\u56de\u4e3b\u83dc\u5355\u3002"
-                : "\u53ef\u4ee5\u7ee7\u7eed\u4f5c\u6218\uff0c\u6216\u4e3b\u52a8\u9000\u51fa\u5f53\u524d\u8054\u673a\u623f\u95f4\u3002";
+                ? session.IsOfflineRoomControl
+                    ? "\u786e\u8ba4\u9000\u51fa\u8bad\u7ec3\uff1f\u4f60\u4f1a\u8fd4\u56de\u4e3b\u83dc\u5355\u3002"
+                    : "\u786e\u8ba4\u9000\u51fa\u623f\u95f4\uff1f\u5bf9\u65b9\u4e5f\u4f1a\u6536\u5230\u623f\u95f4\u5173\u95ed\u72b6\u6001\u5e76\u8fd4\u56de\u4e3b\u83dc\u5355\u3002"
+                : session.IsOfflineRoomControl
+                    ? "\u53ef\u4ee5\u7ee7\u7eed\u8bad\u7ec3\uff0c\u6216\u9000\u51fa\u8fd4\u56de\u4e3b\u83dc\u5355\u3002"
+                    : "\u53ef\u4ee5\u7ee7\u7eed\u4f5c\u6218\uff0c\u6216\u4e3b\u52a8\u9000\u51fa\u5f53\u524d\u8054\u673a\u623f\u95f4\u3002";
             GUI.Label(new Rect(rect.x + 30f, rect.y + 110f, rect.width - 60f, 50f), body, mutedStyle);
 
             if (confirmExit)
@@ -191,12 +200,18 @@ namespace SkyCircuit.Networking
                 return;
             }
 
-            if (GUI.Button(new Rect(rect.x + 30f, rect.yMax - 62f, 142f, 38f), "\u7ee7\u7eed\u4f5c\u6218", buttonStyle))
+            if (GUI.Button(
+                    new Rect(rect.x + 30f, rect.yMax - 62f, 142f, 38f),
+                    session.IsOfflineRoomControl ? "\u7ee7\u7eed\u8bad\u7ec3" : "\u7ee7\u7eed\u4f5c\u6218",
+                    buttonStyle))
             {
                 panelOpen = false;
             }
 
-            if (GUI.Button(new Rect(rect.xMax - 178f, rect.yMax - 62f, 148f, 38f), "\u9000\u51fa\u623f\u95f4", dangerButtonStyle))
+            if (GUI.Button(
+                    new Rect(rect.xMax - 178f, rect.yMax - 62f, 148f, 38f),
+                    session.IsOfflineRoomControl ? "\u9000\u51fa\u8bad\u7ec3" : "\u9000\u51fa\u623f\u95f4",
+                    dangerButtonStyle))
             {
                 confirmExit = true;
             }

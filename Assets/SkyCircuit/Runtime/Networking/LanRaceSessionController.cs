@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using SkyCircuit.Combat;
 using SkyCircuit.Flight;
 using SkyCircuit.Match;
+using SkyCircuit.Profiles;
+using SkyCircuit.Race;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -157,14 +159,14 @@ namespace SkyCircuit.Networking
         public string LeftDisplayName => DisplayNameOf(competitors[0], "Host Pilot");
         public string RightDisplayName => DisplayNameOf(competitors[1], "Client Pilot");
         public bool IsOfflineTutorialActive => offlineTutorialActive;
-        public bool IsRoomControlAvailable => !offlineTutorialActive
-            && !roomCloseCompleted
-            && (roomClosing || (networkManager != null && networkManager.IsListening));
+        public bool IsRoomControlAvailable => !roomCloseCompleted
+            && (offlineTutorialActive || roomClosing || (networkManager != null && networkManager.IsListening));
         public bool IsRoomClosing => roomClosing;
         public string RoomCloseReasonText => RoomCloseReasonTextOf(roomCloseReason);
         public string RoomStatusText => roomClosing
             ? RoomCloseReasonText
             : $"{DescribeMode()}  {DisplayConnectedPlayers}/{ExpectedPlayerCount}  {DisplayPhaseText}";
+        public bool IsOfflineRoomControl => offlineTutorialActive && (networkManager == null || !networkManager.IsListening);
 
         private void Awake()
         {
@@ -709,9 +711,19 @@ namespace SkyCircuit.Networking
                 slot == 0,
                 controller,
                 spawnPoint,
-                controller != null ? controller.Profile : null);
+                ResolveProfileForOwner(ownerClientId, controller != null ? controller.Profile : null));
             ResetCompetitorForMatch(competitor);
             SetCompetitorFlightActive(competitor, IsRaceInputActive);
+        }
+
+        private static CompetitorProfile ResolveProfileForOwner(ulong ownerClientId, CompetitorProfile fallback)
+        {
+            if (RaceLaunchRequest.TryGetLanSelection(ownerClientId, out CompetitorArchetype archetype))
+            {
+                return RaceProfileCatalog.ResolveDefault(archetype);
+            }
+
+            return fallback != null ? fallback : RaceProfileCatalog.ResolveDefault(CompetitorArchetype.AllRounder);
         }
 
         private void ApplySlotVisuals(NetworkFlightInputBridge bridge, int slot)
@@ -1148,6 +1160,11 @@ namespace SkyCircuit.Networking
 
         private string DescribeMode()
         {
+            if (IsOfflineRoomControl)
+            {
+                return "Training";
+            }
+
             if (networkManager == null || !networkManager.IsListening)
             {
                 return "Offline";

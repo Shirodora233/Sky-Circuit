@@ -1,4 +1,6 @@
+using SkyCircuit.Networking;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 
@@ -100,10 +102,19 @@ namespace SkyCircuit.Flight
             }
 
             var mouse = Mouse.current;
-            if (mouse != null && mouse.leftButton.wasPressedThisFrame && Cursor.lockState != CursorLockMode.Locked)
+            if (mouse != null
+                && mouse.leftButton.wasPressedThisFrame
+                && Cursor.lockState != CursorLockMode.Locked
+                && !ShouldIgnoreCursorLockClick())
             {
                 LockCursor();
             }
+        }
+
+        private static bool ShouldIgnoreCursorLockClick()
+        {
+            return LanRaceRoomControlHud.IsPointerCaptured
+                || (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject());
         }
 
         private static void LockCursor()

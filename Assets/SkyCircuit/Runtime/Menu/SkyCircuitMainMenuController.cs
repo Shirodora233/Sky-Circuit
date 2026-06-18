@@ -1,5 +1,6 @@
 using System.Collections;
 using SkyCircuit.Networking;
+using SkyCircuit.Profiles;
 using SkyCircuit.Race;
 using SkyCircuit.Tutorial;
 using Unity.Netcode;
@@ -19,6 +20,8 @@ namespace SkyCircuit.Menu
         [SerializeField] private float statusMessageSeconds = 2.4f;
 
         private Coroutine statusRoutine;
+        private RaceTypeSelectionPanel raceTypeSelectionPanel;
+        private LanRaceReadyCoordinator readyCoordinator;
 
         public void Configure(
             string combatScene,
@@ -37,6 +40,7 @@ namespace SkyCircuit.Menu
         private void Awake()
         {
             ResolveLanBootstrap();
+            EnsureRaceSelectionSystems();
 
             if (settingsPanel != null)
             {
@@ -57,26 +61,14 @@ namespace SkyCircuit.Menu
                 return;
             }
 
-            RaceLaunchRequest.Request(RaceMode.LanMultiplayer);
-            if (TryLoadCombatAsNetworkScene())
-            {
-                return;
-            }
-
-            if (lanBootstrap != null && lanBootstrap.IsClient && !lanBootstrap.IsServer)
-            {
-                ShowStatus("\u5df2\u8fde\u63a5\uff0c\u7b49\u5f85\u4e3b\u673a\u5f00\u59cb\u4f5c\u6218");
-                return;
-            }
-
-            LoadScene(combatSceneName, "\u4f5c\u6218\u573a\u666f\u8fd8\u6ca1\u6709\u52a0\u5165\u6784\u5efa");
+            EnsureRaceSelectionSystems();
+            raceTypeSelectionPanel.ShowLan();
         }
 
         public void OpenTraining()
         {
-            RaceLaunchRequest.Request(RaceMode.AiTraining);
-            ShutdownLanNetwork();
-            LoadScene(trainingSceneName, "\u8bad\u7ec3\u573a\u666f\u8fd8\u6ca1\u6709\u52a0\u5165\u6784\u5efa");
+            EnsureRaceSelectionSystems();
+            raceTypeSelectionPanel.ShowTraining();
         }
 
         public void ToggleSettings()
@@ -114,6 +106,18 @@ namespace SkyCircuit.Menu
             SceneManager.LoadScene(tutorialSceneName);
         }
 
+        public void BeginSelectedTraining(CompetitorArchetype playerArchetype)
+        {
+            RaceLaunchRequest.Request(RaceMode.AiTraining, playerArchetype, CompetitorArchetype.AllRounder);
+            ShutdownLanNetwork();
+            LoadScene(trainingSceneName, "\u8bad\u7ec3\u573a\u666f\u8fd8\u6ca1\u6709\u52a0\u5165\u6784\u5efa");
+        }
+
+        public void ShowMenuStatus(string message)
+        {
+            ShowStatus(message);
+        }
+
         public void QuitGame()
         {
 #if UNITY_EDITOR
@@ -146,6 +150,20 @@ namespace SkyCircuit.Menu
             }
 
             SceneManager.LoadScene(sceneName);
+        }
+
+        private void HandleLanReadyCountdownCompleted()
+        {
+            if (lanBootstrap == null || !lanBootstrap.IsServer)
+            {
+                return;
+            }
+
+            RaceLaunchRequest.Request(
+                RaceMode.LanMultiplayer,
+                readyCoordinator != null ? readyCoordinator.LocalArchetype : CompetitorArchetype.AllRounder,
+                CompetitorArchetype.AllRounder);
+            TryLoadCombatAsNetworkScene();
         }
 
         private void ShutdownLanNetwork()
@@ -216,6 +234,45 @@ namespace SkyCircuit.Menu
             if (lanBootstrap == null)
             {
                 lanBootstrap = FindAnyObjectByType<LanNetworkBootstrap>(FindObjectsInactive.Include);
+            }
+        }
+
+        private void EnsureRaceSelectionSystems()
+        {
+            if (readyCoordinator == null)
+            {
+                readyCoordinator = GetComponent<LanRaceReadyCoordinator>();
+                if (readyCoordinator == null)
+                {
+                    readyCoordinator = gameObject.AddComponent<LanRaceReadyCoordinator>();
+                }
+
+                readyCoordinator.Configure(lanBootstrap);
+                readyCoordinator.CountdownCompleted -= HandleLanReadyCountdownCompleted;
+                readyCoordinator.CountdownCompleted += HandleLanReadyCountdownCompleted;
+            }
+
+            if (raceTypeSelectionPanel == null)
+            {
+                raceTypeSelectionPanel = GetComponent<RaceTypeSelectionPanel>();
+                if (raceTypeSelectionPanel == null)
+                {
+                    raceTypeSelectionPanel = gameObject.AddComponent<RaceTypeSelectionPanel>();
+                }
+
+                Canvas canvas = GetComponentInParent<Canvas>();
+                raceTypeSelectionPanel.Configure(
+                    this,
+                    canvas != null ? canvas.GetComponent<RectTransform>() : null,
+                    readyCoordinator);
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (readyCoordinator != null)
+            {
+                readyCoordinator.CountdownCompleted -= HandleLanReadyCountdownCompleted;
             }
         }
 
