@@ -45,6 +45,7 @@ namespace SkyCircuit.Networking
         public bool IsClient => networkManager != null && networkManager.IsClient;
         public bool IsServer => networkManager != null && networkManager.IsServer;
         public ulong LocalClientId => networkManager != null ? networkManager.LocalClientId : 0UL;
+        public NetworkManager NetworkManager => networkManager;
 
         public int ConnectedClientCount
         {
@@ -62,6 +63,7 @@ namespace SkyCircuit.Networking
         private void Awake()
         {
             ResolveNetworkObjects();
+            EnsurePreferredNetworkManager();
             RegisterCallbacks();
         }
 
@@ -215,6 +217,46 @@ namespace SkyCircuit.Networking
                     transport = networkManager.GetComponent<UnityTransport>();
                 }
             }
+        }
+
+        private void EnsurePreferredNetworkManager()
+        {
+            if (networkManager == null)
+            {
+                return;
+            }
+
+            NetworkManager singleton = NetworkManager.Singleton;
+            if (singleton == null)
+            {
+                networkManager.SetSingleton();
+                return;
+            }
+
+            if (singleton == networkManager)
+            {
+                return;
+            }
+
+            if (singleton.IsListening)
+            {
+                if (!networkManager.IsListening)
+                {
+                    networkManager = singleton;
+                    transport = networkManager.NetworkConfig != null
+                        ? networkManager.NetworkConfig.NetworkTransport as UnityTransport
+                        : null;
+                    if (transport == null)
+                    {
+                        transport = networkManager.GetComponent<UnityTransport>();
+                    }
+                }
+
+                return;
+            }
+
+            Destroy(singleton.gameObject);
+            networkManager.SetSingleton();
         }
 
         private void RegisterCallbacks()

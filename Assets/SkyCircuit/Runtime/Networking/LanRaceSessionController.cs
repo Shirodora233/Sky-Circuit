@@ -400,9 +400,18 @@ namespace SkyCircuit.Networking
 
             roomCloseCompleted = true;
             roomClosing = false;
-            if (networkManager != null && networkManager.IsListening)
+            NetworkManager closingNetworkManager = networkManager != null
+                ? networkManager
+                : NetworkManager.Singleton;
+            if (closingNetworkManager != null && closingNetworkManager.IsListening)
             {
-                networkManager.Shutdown();
+                closingNetworkManager.Shutdown();
+            }
+
+            if (closingNetworkManager != null)
+            {
+                Destroy(closingNetworkManager.gameObject);
+                networkManager = null;
             }
 
             if (!string.IsNullOrWhiteSpace(mainMenuSceneName) && Application.CanStreamedLevelBeLoaded(mainMenuSceneName))

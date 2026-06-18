@@ -170,7 +170,9 @@ namespace SkyCircuit.Menu
 
         private bool TryLoadCombatAsNetworkScene()
         {
-            NetworkManager networkManager = NetworkManager.Singleton;
+            NetworkManager networkManager = lanBootstrap != null && lanBootstrap.NetworkManager != null
+                ? lanBootstrap.NetworkManager
+                : NetworkManager.Singleton;
             if (networkManager == null || !networkManager.IsListening || !networkManager.IsServer)
             {
                 return false;
