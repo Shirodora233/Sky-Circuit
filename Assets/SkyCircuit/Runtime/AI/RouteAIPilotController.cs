@@ -40,9 +40,15 @@ namespace SkyCircuit.AI
         [SerializeField] private float dogfightBehindOffset = 3f;
         [SerializeField] private float dogfightVerticalOffset = 0.5f;
         [SerializeField] private bool boostOnStraight = false;
+        [SerializeField] private float recoveryForwardDistance = 30f;
+        [SerializeField] private float recoverySideDistance = 18f;
+        [SerializeField] private float spinRecoveryThreshold = 1.8f;
+        [SerializeField] private float stuckRecoveryDuration = 2.2f;
 
         private float lastTurnDirection = 1f;
         private CompetitorProfile appliedProfile;
+        private float recoveryRemaining;
+        private float recoveryTurnDirection = 1f;
         private AiPilotState debugState = AiPilotState.Idle;
         private string debugTargetKind = "None";
         private Vector3 debugTargetPosition;
@@ -188,22 +194,34 @@ namespace SkyCircuit.AI
                 targetPosition = routeTarget.position;
             }
 
-            Vector3 toTarget = targetPosition - body.position;
-            float distance = toTarget.magnitude;
-            if (distance <= Mathf.Epsilon)
+            Vector3 rawToTarget = targetPosition - body.position;
+            float rawDistance = rawToTarget.magnitude;
+            if (rawDistance <= Mathf.Epsilon)
             {
                 controller.SetInput(FlightInputState.Neutral);
                 ResetTelemetry("AtTarget");
                 return;
             }
 
-            Vector3 localTarget = body.InverseTransformDirection(toTarget / distance);
+            Vector3 rawLocalTarget = body.InverseTransformDirection(rawToTarget / rawDistance);
+            AiPilotState state = SelectPilotState(targetingDogfight, rawDistance, rawLocalTarget);
+            Vector3 steeringTarget = ResolveSteeringTarget(body, targetPosition, rawLocalTarget, state);
+            Vector3 toTarget = steeringTarget - body.position;
+            float steeringDistance = toTarget.magnitude;
+            if (steeringDistance <= Mathf.Epsilon)
+            {
+                controller.SetInput(FlightInputState.Neutral);
+                ResetTelemetry("AtSteeringTarget");
+                return;
+            }
+
+            Vector3 localTarget = body.InverseTransformDirection(toTarget / steeringDistance);
             float turn = CalculateTurn(localTarget);
-            float throttle = CalculateThrottle(distance, localTarget, turn);
+            float throttle = CalculateThrottle(rawDistance, localTarget, turn, state);
 
             float vertical = Mathf.Clamp(toTarget.y / verticalRange, -1f, 1f);
             bool boost = boostOnStraight && throttle > 0f && Mathf.Abs(turn) < 0.2f && Mathf.Abs(vertical) < 0.2f;
-            UpdateTelemetry(targetingDogfight, targetPosition, distance, localTarget, throttle, turn, vertical);
+            UpdateTelemetry(targetingDogfight, steeringTarget, rawDistance, rawLocalTarget, throttle, turn, vertical, state);
             controller.SetInput(new FlightInputState(throttle, turn, vertical, Vector2.zero, boost));
         }
 
@@ -232,7 +250,8 @@ namespace SkyCircuit.AI
             Vector3 localTarget,
             float throttle,
             float turn,
-            float vertical)
+            float vertical,
+            AiPilotState selectedState)
         {
             debugTargetKind = targetingDogfight ? "Dogfight" : "Route";
             debugTargetPosition = targetPosition;
@@ -276,26 +295,7 @@ namespace SkyCircuit.AI
             bool stuck = debugNoProgressTime > 3f && debugSpeed < Mathf.Max(closeTargetSpeed + 4f, 8f);
             debugStuckTime = stuck ? debugStuckTime + Time.deltaTime : 0f;
 
-            if (debugStuckTime > 0f)
-            {
-                debugState = AiPilotState.StuckRecovery;
-            }
-            else if (targetingDogfight)
-            {
-                debugState = AiPilotState.DogfightAttack;
-            }
-            else if (overshooting)
-            {
-                debugState = AiPilotState.OvershootRecovery;
-            }
-            else if (distance <= approachSlowRadius)
-            {
-                debugState = AiPilotState.BuoyApproach;
-            }
-            else
-            {
-                debugState = AiPilotState.RouteCruise;
-            }
+            debugState = selectedState;
         }
 
         private bool IsRaceRunning()
@@ -348,7 +348,73 @@ namespace SkyCircuit.AI
             return turn;
         }
 
-        private float CalculateThrottle(float distance, Vector3 localTarget, float turn)
+        private AiPilotState SelectPilotState(bool targetingDogfight, float distance, Vector3 localTarget)
+        {
+            recoveryRemaining = Mathf.Max(0f, recoveryRemaining - Time.deltaTime);
+            if (targetingDogfight)
+            {
+                return AiPilotState.DogfightAttack;
+            }
+
+            if (recoveryRemaining > 0f)
+            {
+                return AiPilotState.StuckRecovery;
+            }
+
+            if (debugStuckTime > 0.2f || debugSpinTime > spinRecoveryThreshold)
+            {
+                BeginRecovery(localTarget);
+                return AiPilotState.StuckRecovery;
+            }
+
+            if (localTarget.z < -0.05f && distance < overshootRecoveryRadius)
+            {
+                recoveryTurnDirection = ResolveTurnDirection(localTarget);
+                return AiPilotState.OvershootRecovery;
+            }
+
+            return distance <= approachSlowRadius ? AiPilotState.BuoyApproach : AiPilotState.RouteCruise;
+        }
+
+        private Vector3 ResolveSteeringTarget(
+            Transform body,
+            Vector3 routeOrDogfightTarget,
+            Vector3 localTarget,
+            AiPilotState state)
+        {
+            if (state != AiPilotState.OvershootRecovery && state != AiPilotState.StuckRecovery)
+            {
+                return routeOrDogfightTarget;
+            }
+
+            recoveryTurnDirection = ResolveTurnDirection(localTarget);
+            float verticalOffset = Mathf.Clamp(routeOrDogfightTarget.y - body.position.y, -verticalRange, verticalRange);
+            return body.position
+                + body.forward * Mathf.Max(1f, recoveryForwardDistance)
+                + body.right * recoveryTurnDirection * Mathf.Max(0f, recoverySideDistance)
+                + Vector3.up * verticalOffset;
+        }
+
+        private void BeginRecovery(Vector3 localTarget)
+        {
+            recoveryRemaining = Mathf.Max(0.1f, stuckRecoveryDuration);
+            recoveryTurnDirection = ResolveTurnDirection(localTarget);
+            debugSpinTime = 0f;
+            debugStuckTime = 0f;
+            debugNoProgressTime = 0f;
+        }
+
+        private float ResolveTurnDirection(Vector3 localTarget)
+        {
+            if (Mathf.Abs(localTarget.x) > 0.08f)
+            {
+                return Mathf.Sign(localTarget.x);
+            }
+
+            return Mathf.Abs(lastTurnDirection) > 0.01f ? Mathf.Sign(lastTurnDirection) : 1f;
+        }
+
+        private float CalculateThrottle(float distance, Vector3 localTarget, float turn, AiPilotState state)
         {
             float touchRadius = route != null ? route.TouchRadius : 6f;
             float slowRadius = Mathf.Max(approachSlowRadius, touchRadius * 4f);
@@ -358,9 +424,13 @@ namespace SkyCircuit.AI
 
             float desiredSpeed = Mathf.Lerp(routeSpeed, closeTargetSpeed, approach01);
             desiredSpeed = Mathf.Lerp(desiredSpeed, closeTargetSpeed, turn01 * turn01);
-            if (localTarget.z < 0f && distance < overshootRecoveryRadius)
+            if (state == AiPilotState.OvershootRecovery)
             {
                 desiredSpeed = overshootSpeed;
+            }
+            else if (state == AiPilotState.StuckRecovery)
+            {
+                desiredSpeed = Mathf.Max(closeTargetSpeed, overshootSpeed, 10f);
             }
 
             float speed = controller != null ? controller.CurrentSpeed : desiredSpeed;
