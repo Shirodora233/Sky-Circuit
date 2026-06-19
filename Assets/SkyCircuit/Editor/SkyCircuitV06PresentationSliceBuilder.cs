@@ -423,7 +423,9 @@ namespace SkyCircuit.EditorTools
             Texture2D backHitTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(BackHitTexturePath);
             foreach (BackHitFeedback feedback in UnityEngine.Object.FindObjectsByType<BackHitFeedback>(FindObjectsInactive.Exclude))
             {
+                feedback.ResetToDefaultBackAnchor();
                 feedback.Configure(feedback.GetComponent<Renderer>(), feedback.GetComponent<Light>(), backHitTexture);
+                EditorUtility.SetDirty(feedback.transform);
                 EditorUtility.SetDirty(feedback);
             }
         }

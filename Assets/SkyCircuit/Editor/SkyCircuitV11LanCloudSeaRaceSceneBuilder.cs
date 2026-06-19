@@ -137,6 +137,7 @@ namespace SkyCircuit.EditorTools
             NetworkFlightInputBridge inputBridge = EnsureComponent<NetworkFlightInputBridge>(prefabInstance);
             ConfigureInputBridge(inputBridge);
             ConfigureContrailTrails(prefabInstance);
+            ConfigureBackHitFeedbacks(prefabInstance);
 
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(prefabInstance, RacePlayerPrefabPath);
             UnityEngine.Object.DestroyImmediate(prefabInstance);
@@ -172,6 +173,21 @@ namespace SkyCircuit.EditorTools
             serialized.FindProperty("logContrailDebug").boolValue = false;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(inputBridge);
+        }
+
+        private static void ConfigureBackHitFeedbacks(GameObject prefabInstance)
+        {
+            foreach (BackHitFeedback feedback in prefabInstance.GetComponentsInChildren<BackHitFeedback>(true))
+            {
+                if (feedback == null)
+                {
+                    continue;
+                }
+
+                feedback.ResetToDefaultBackAnchor();
+                EditorUtility.SetDirty(feedback.transform);
+                EditorUtility.SetDirty(feedback);
+            }
         }
 
         private static void ConfigureContrailTrails(GameObject prefabInstance)

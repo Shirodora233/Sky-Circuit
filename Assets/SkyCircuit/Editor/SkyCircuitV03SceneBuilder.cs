@@ -164,6 +164,7 @@ namespace SkyCircuit.EditorTools
             light.color = new Color(1f, 0.82f, 0.16f);
 
             BackHitFeedback feedback = feedbackObject.AddComponent<BackHitFeedback>();
+            feedback.ResetToDefaultBackAnchor();
             feedback.Configure(renderer, light, backHitTexture);
             return feedback;
         }
