@@ -166,6 +166,21 @@ namespace SkyCircuit.AI
             dogfightBehindOffset = settings.dogfightBehindOffset;
             dogfightVerticalOffset = settings.dogfightVerticalOffset;
             boostOnStraight = settings.boostOnStraight;
+            recoveryForwardDistance = settings.recoveryForwardDistance;
+            recoverySideDistance = settings.recoverySideDistance;
+            spinRecoveryThreshold = settings.spinRecoveryThreshold;
+            stuckRecoveryDuration = settings.stuckRecoveryDuration;
+            routePredictionStartRadius = settings.routePredictionStartRadius;
+            routeExitLeadDistance = settings.routeExitLeadDistance;
+            lookYawGain = settings.lookYawGain;
+            lookPitchGain = settings.lookPitchGain;
+            maxLookDelta = settings.maxLookDelta;
+            dogfightMaxRouteDistance = settings.dogfightMaxRouteDistance;
+            dogfightMaxChaseTime = settings.dogfightMaxChaseTime;
+            dogfightCooldownDuration = settings.dogfightCooldownDuration;
+            dogfightPredictionTime = settings.dogfightPredictionTime;
+            dogfightEntryBehindDot = settings.dogfightEntryBehindDot;
+            dogfightEntryFacingDot = settings.dogfightEntryFacingDot;
             appliedProfile = profile;
         }
 

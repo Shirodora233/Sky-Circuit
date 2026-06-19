@@ -332,6 +332,21 @@ namespace SkyCircuit.Profiles
         [Min(0f)] public float dogfightBehindOffset;
         public float dogfightVerticalOffset;
         public bool boostOnStraight;
+        [Min(0f)] public float recoveryForwardDistance;
+        [Min(0f)] public float recoverySideDistance;
+        [Min(0f)] public float spinRecoveryThreshold;
+        [Min(0f)] public float stuckRecoveryDuration;
+        [Min(0f)] public float routePredictionStartRadius;
+        [Min(0f)] public float routeExitLeadDistance;
+        [Min(0f)] public float lookYawGain;
+        [Min(0f)] public float lookPitchGain;
+        [Min(0f)] public float maxLookDelta;
+        [Min(0f)] public float dogfightMaxRouteDistance;
+        [Min(0f)] public float dogfightMaxChaseTime;
+        [Min(0f)] public float dogfightCooldownDuration;
+        [Min(0f)] public float dogfightPredictionTime;
+        [Range(-1f, 1f)] public float dogfightEntryBehindDot;
+        [Range(-1f, 1f)] public float dogfightEntryFacingDot;
 
         public static RouteAIPilotSettings Speeder()
         {
@@ -350,6 +365,21 @@ namespace SkyCircuit.Profiles
                 dogfightBehindOffset = 4.2f,
                 dogfightVerticalOffset = 0.25f,
                 boostOnStraight = true,
+                recoveryForwardDistance = 36f,
+                recoverySideDistance = 16f,
+                spinRecoveryThreshold = 1.6f,
+                stuckRecoveryDuration = 1.8f,
+                routePredictionStartRadius = 66f,
+                routeExitLeadDistance = 24f,
+                lookYawGain = 0.75f,
+                lookPitchGain = 1f,
+                maxLookDelta = 5f,
+                dogfightMaxRouteDistance = 48f,
+                dogfightMaxChaseTime = 3.2f,
+                dogfightCooldownDuration = 5.5f,
+                dogfightPredictionTime = 0.25f,
+                dogfightEntryBehindDot = -0.45f,
+                dogfightEntryFacingDot = 0.2f,
             };
         }
 
@@ -370,6 +400,21 @@ namespace SkyCircuit.Profiles
                 dogfightBehindOffset = 2.6f,
                 dogfightVerticalOffset = 0.7f,
                 boostOnStraight = false,
+                recoveryForwardDistance = 24f,
+                recoverySideDistance = 22f,
+                spinRecoveryThreshold = 1.5f,
+                stuckRecoveryDuration = 2f,
+                routePredictionStartRadius = 42f,
+                routeExitLeadDistance = 12f,
+                lookYawGain = 1.1f,
+                lookPitchGain = 1.35f,
+                maxLookDelta = 7f,
+                dogfightMaxRouteDistance = 78f,
+                dogfightMaxChaseTime = 7f,
+                dogfightCooldownDuration = 2f,
+                dogfightPredictionTime = 0.45f,
+                dogfightEntryBehindDot = 0.1f,
+                dogfightEntryFacingDot = -0.25f,
             };
         }
 
@@ -390,6 +435,21 @@ namespace SkyCircuit.Profiles
                 dogfightBehindOffset = 3f,
                 dogfightVerticalOffset = 0.5f,
                 boostOnStraight = false,
+                recoveryForwardDistance = 30f,
+                recoverySideDistance = 18f,
+                spinRecoveryThreshold = 1.8f,
+                stuckRecoveryDuration = 2.2f,
+                routePredictionStartRadius = 54f,
+                routeExitLeadDistance = 16f,
+                lookYawGain = 0.85f,
+                lookPitchGain = 1.2f,
+                maxLookDelta = 6f,
+                dogfightMaxRouteDistance = 64f,
+                dogfightMaxChaseTime = 5.5f,
+                dogfightCooldownDuration = 3.5f,
+                dogfightPredictionTime = 0.35f,
+                dogfightEntryBehindDot = -0.18f,
+                dogfightEntryFacingDot = -0.05f,
             };
         }
 
@@ -406,6 +466,21 @@ namespace SkyCircuit.Profiles
             brakeInput = Mathf.Clamp(brakeInput, -1f, 0f);
             dogfightEngageDistance = Mathf.Max(0f, dogfightEngageDistance);
             dogfightBehindOffset = Mathf.Max(0f, dogfightBehindOffset);
+            recoveryForwardDistance = recoveryForwardDistance > 0f ? recoveryForwardDistance : 30f;
+            recoverySideDistance = recoverySideDistance > 0f ? recoverySideDistance : 18f;
+            spinRecoveryThreshold = spinRecoveryThreshold > 0f ? spinRecoveryThreshold : 1.8f;
+            stuckRecoveryDuration = stuckRecoveryDuration > 0f ? stuckRecoveryDuration : 2.2f;
+            routePredictionStartRadius = routePredictionStartRadius > 0f ? routePredictionStartRadius : 54f;
+            routeExitLeadDistance = routeExitLeadDistance > 0f ? routeExitLeadDistance : 16f;
+            lookYawGain = lookYawGain > 0f ? lookYawGain : 0.85f;
+            lookPitchGain = lookPitchGain > 0f ? lookPitchGain : 1.2f;
+            maxLookDelta = maxLookDelta > 0f ? maxLookDelta : 6f;
+            dogfightMaxRouteDistance = dogfightMaxRouteDistance > 0f ? dogfightMaxRouteDistance : 64f;
+            dogfightMaxChaseTime = dogfightMaxChaseTime > 0f ? dogfightMaxChaseTime : 5.5f;
+            dogfightCooldownDuration = dogfightCooldownDuration > 0f ? dogfightCooldownDuration : 3.5f;
+            dogfightPredictionTime = dogfightPredictionTime > 0f ? dogfightPredictionTime : 0.35f;
+            dogfightEntryBehindDot = Mathf.Clamp(dogfightEntryBehindDot, -1f, 1f);
+            dogfightEntryFacingDot = Mathf.Clamp(dogfightEntryFacingDot, -1f, 1f);
             return this;
         }
     }

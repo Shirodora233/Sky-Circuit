@@ -63,3 +63,18 @@ MonoBehaviour:
     dogfightBehindOffset: 2.6
     dogfightVerticalOffset: 0.7
     boostOnStraight: 0
+    recoveryForwardDistance: 24
+    recoverySideDistance: 22
+    spinRecoveryThreshold: 1.5
+    stuckRecoveryDuration: 2
+    routePredictionStartRadius: 42
+    routeExitLeadDistance: 12
+    lookYawGain: 1.1
+    lookPitchGain: 1.35
+    maxLookDelta: 7
+    dogfightMaxRouteDistance: 78
+    dogfightMaxChaseTime: 7
+    dogfightCooldownDuration: 2
+    dogfightPredictionTime: 0.45
+    dogfightEntryBehindDot: 0.1
+    dogfightEntryFacingDot: -0.25
