@@ -56,6 +56,27 @@ namespace SkyCircuit.Match
             return buoys[index];
         }
 
+        public Transform GetNextTarget(Competitor competitor)
+        {
+            if (competitor == null)
+            {
+                return null;
+            }
+
+            return GetTargetAfter(competitor.TargetIndex);
+        }
+
+        public Transform GetTargetAfter(int targetIndex)
+        {
+            if (buoys == null || buoys.Length == 0)
+            {
+                return null;
+            }
+
+            int index = Mathf.Clamp(targetIndex, 0, buoys.Length - 1);
+            return buoys[(index + 1) % buoys.Length];
+        }
+
         public bool TryScore(Competitor competitor)
         {
             Transform target = GetTarget(competitor);

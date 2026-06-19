@@ -44,6 +44,11 @@ namespace SkyCircuit.AI
         [SerializeField] private float recoverySideDistance = 18f;
         [SerializeField] private float spinRecoveryThreshold = 1.8f;
         [SerializeField] private float stuckRecoveryDuration = 2.2f;
+        [SerializeField] private float routePredictionStartRadius = 54f;
+        [SerializeField] private float routeExitLeadDistance = 16f;
+        [SerializeField] private float lookYawGain = 0.85f;
+        [SerializeField] private float lookPitchGain = 1.2f;
+        [SerializeField] private float maxLookDelta = 6f;
 
         private float lastTurnDirection = 1f;
         private CompetitorProfile appliedProfile;
@@ -181,6 +186,7 @@ namespace SkyCircuit.AI
             }
 
             bool targetingDogfight = TryGetDogfightTarget(body, out Vector3 targetPosition);
+            Vector3 preferredSteeringTarget = targetPosition;
             if (!targetingDogfight)
             {
                 Transform routeTarget = route != null ? route.GetTarget(competitor) : null;
@@ -192,6 +198,11 @@ namespace SkyCircuit.AI
                 }
 
                 targetPosition = routeTarget.position;
+                preferredSteeringTarget = ResolveRoutePredictionTarget(body, targetPosition);
+            }
+            else
+            {
+                preferredSteeringTarget = targetPosition;
             }
 
             Vector3 rawToTarget = targetPosition - body.position;
@@ -205,7 +216,7 @@ namespace SkyCircuit.AI
 
             Vector3 rawLocalTarget = body.InverseTransformDirection(rawToTarget / rawDistance);
             AiPilotState state = SelectPilotState(targetingDogfight, rawDistance, rawLocalTarget);
-            Vector3 steeringTarget = ResolveSteeringTarget(body, targetPosition, rawLocalTarget, state);
+            Vector3 steeringTarget = ResolveSteeringTarget(body, preferredSteeringTarget, rawLocalTarget, state);
             Vector3 toTarget = steeringTarget - body.position;
             float steeringDistance = toTarget.magnitude;
             if (steeringDistance <= Mathf.Epsilon)
@@ -220,9 +231,14 @@ namespace SkyCircuit.AI
             float throttle = CalculateThrottle(rawDistance, localTarget, turn, state);
 
             float vertical = Mathf.Clamp(toTarget.y / verticalRange, -1f, 1f);
-            bool boost = boostOnStraight && throttle > 0f && Mathf.Abs(turn) < 0.2f && Mathf.Abs(vertical) < 0.2f;
+            Vector2 lookDelta = BuildLookDelta(localTarget);
+            bool boost = boostOnStraight
+                && state == AiPilotState.RouteCruise
+                && throttle > 0f
+                && Mathf.Abs(turn) < 0.2f
+                && Mathf.Abs(vertical) < 0.2f;
             UpdateTelemetry(targetingDogfight, steeringTarget, rawDistance, rawLocalTarget, throttle, turn, vertical, state);
-            controller.SetInput(new FlightInputState(throttle, turn, vertical, Vector2.zero, boost));
+            controller.SetInput(new FlightInputState(throttle, turn, vertical, lookDelta, boost));
         }
 
         private void ResetTelemetry(string targetKind)
@@ -334,7 +350,8 @@ namespace SkyCircuit.AI
 
         private float CalculateTurn(Vector3 localTarget)
         {
-            float turn = Mathf.Clamp(localTarget.x * turnGain, -1f, 1f);
+            float yawError = Mathf.Atan2(localTarget.x, Mathf.Max(0.05f, localTarget.z)) * Mathf.Rad2Deg;
+            float turn = Mathf.Clamp((yawError / 60f) * turnGain, -1f, 1f);
             if (Mathf.Abs(turn) > 0.05f)
             {
                 lastTurnDirection = Mathf.Sign(turn);
@@ -346,6 +363,16 @@ namespace SkyCircuit.AI
             }
 
             return turn;
+        }
+
+        private Vector2 BuildLookDelta(Vector3 localTarget)
+        {
+            float yawError = Mathf.Atan2(localTarget.x, Mathf.Max(0.05f, localTarget.z)) * Mathf.Rad2Deg;
+            float pitchError = Mathf.Asin(Mathf.Clamp(localTarget.y, -1f, 1f)) * Mathf.Rad2Deg;
+            float dt = Mathf.Max(0.001f, Time.deltaTime);
+            float yawDelta = Mathf.Clamp(yawError * lookYawGain * dt, -maxLookDelta, maxLookDelta);
+            float pitchDelta = Mathf.Clamp(pitchError * lookPitchGain * dt, -maxLookDelta, maxLookDelta);
+            return new Vector2(yawDelta, pitchDelta);
         }
 
         private AiPilotState SelectPilotState(bool targetingDogfight, float distance, Vector3 localTarget)
@@ -393,6 +420,28 @@ namespace SkyCircuit.AI
                 + body.forward * Mathf.Max(1f, recoveryForwardDistance)
                 + body.right * recoveryTurnDirection * Mathf.Max(0f, recoverySideDistance)
                 + Vector3.up * verticalOffset;
+        }
+
+        private Vector3 ResolveRoutePredictionTarget(Transform body, Vector3 routeTargetPosition)
+        {
+            Transform nextTarget = route != null ? route.GetNextTarget(competitor) : null;
+            if (nextTarget == null)
+            {
+                return routeTargetPosition;
+            }
+
+            Vector3 exitDirection = nextTarget.position - routeTargetPosition;
+            if (exitDirection.sqrMagnitude <= 0.0001f)
+            {
+                return routeTargetPosition;
+            }
+
+            exitDirection.Normalize();
+            float distance = Vector3.Distance(body.position, routeTargetPosition);
+            float touchRadius = route != null ? route.TouchRadius : 6f;
+            float predictionSpan = Mathf.Max(0.01f, routePredictionStartRadius - touchRadius);
+            float prediction01 = 1f - Mathf.Clamp01((distance - touchRadius) / predictionSpan);
+            return routeTargetPosition + exitDirection * routeExitLeadDistance * prediction01;
         }
 
         private void BeginRecovery(Vector3 localTarget)
