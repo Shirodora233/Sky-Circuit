@@ -49,11 +49,20 @@ namespace SkyCircuit.AI
         [SerializeField] private float lookYawGain = 0.85f;
         [SerializeField] private float lookPitchGain = 1.2f;
         [SerializeField] private float maxLookDelta = 6f;
+        [SerializeField] private float dogfightMaxRouteDistance = 64f;
+        [SerializeField] private float dogfightMaxChaseTime = 5.5f;
+        [SerializeField] private float dogfightCooldownDuration = 3.5f;
+        [SerializeField] private float dogfightPredictionTime = 0.35f;
+        [SerializeField] private float dogfightEntryBehindDot = -0.18f;
+        [SerializeField] private float dogfightEntryFacingDot = -0.05f;
 
         private float lastTurnDirection = 1f;
         private CompetitorProfile appliedProfile;
         private float recoveryRemaining;
         private float recoveryTurnDirection = 1f;
+        private bool dogfightChaseActive;
+        private float dogfightChaseRemaining;
+        private float dogfightCooldownRemaining;
         private AiPilotState debugState = AiPilotState.Idle;
         private string debugTargetKind = "None";
         private Vector3 debugTargetPosition;
@@ -185,6 +194,7 @@ namespace SkyCircuit.AI
                 return;
             }
 
+            UpdateDogfightTimers();
             bool targetingDogfight = TryGetDogfightTarget(body, out Vector3 targetPosition);
             Vector3 preferredSteeringTarget = targetPosition;
             if (!targetingDogfight)
@@ -332,20 +342,128 @@ namespace SkyCircuit.AI
         private bool TryGetDogfightTarget(Transform body, out Vector3 targetPosition)
         {
             targetPosition = Vector3.zero;
-            Transform opponentBody = dogfightOpponent != null ? dogfightOpponent.Body : null;
-            if (dogfight == null || !dogfight.IsUnlocked || opponentBody == null)
+            Competitor opponent = ResolveDogfightOpponent();
+            Transform opponentBody = opponent != null ? opponent.Body : null;
+            if (!IsDogfightUnlocked() || opponentBody == null)
             {
+                StopDogfightChase(false);
                 return false;
             }
 
             float distanceToOpponent = Vector3.Distance(body.position, opponentBody.position);
-            if (distanceToOpponent > dogfightEngageDistance)
+            float routeDistance = DistanceToRouteTarget(body);
+            if (dogfightChaseActive
+                && (distanceToOpponent > dogfightEngageDistance * 1.35f || routeDistance > dogfightMaxRouteDistance * 1.25f))
+            {
+                StopDogfightChase(true);
+                return false;
+            }
+
+            if (!dogfightChaseActive)
+            {
+                if (dogfightCooldownRemaining > 0f
+                    || distanceToOpponent > dogfightEngageDistance
+                    || routeDistance > dogfightMaxRouteDistance
+                    || !HasDogfightOpportunity(body, opponentBody))
+                {
+                    return false;
+                }
+
+                BeginDogfightChase();
+            }
+
+            float opponentSpeed = opponent.Controller != null ? opponent.Controller.CurrentSpeed : 0f;
+            Vector3 predictedOpponentPosition = opponentBody.position + opponentBody.forward * opponentSpeed * dogfightPredictionTime;
+            targetPosition = predictedOpponentPosition - opponentBody.forward * dogfightBehindOffset + Vector3.up * dogfightVerticalOffset;
+            return true;
+        }
+
+        private Competitor ResolveDogfightOpponent()
+        {
+            if (dogfightOpponent != null)
+            {
+                return dogfightOpponent;
+            }
+
+            if (lanSession == null || competitor == null)
+            {
+                return null;
+            }
+
+            if (lanSession.Player == competitor)
+            {
+                return lanSession.Opponent;
+            }
+
+            if (lanSession.Opponent == competitor)
+            {
+                return lanSession.Player;
+            }
+
+            return lanSession.RemoteOpponent;
+        }
+
+        private bool IsDogfightUnlocked()
+        {
+            if (dogfight != null)
+            {
+                return dogfight.IsUnlocked;
+            }
+
+            return lanSession != null && lanSession.DogfightUnlocked;
+        }
+
+        private bool HasDogfightOpportunity(Transform body, Transform opponentBody)
+        {
+            Vector3 opponentToAi = body.position - opponentBody.position;
+            if (opponentToAi.sqrMagnitude <= Mathf.Epsilon)
             {
                 return false;
             }
 
-            targetPosition = opponentBody.position - opponentBody.forward * dogfightBehindOffset + Vector3.up * dogfightVerticalOffset;
-            return true;
+            Vector3 opponentToAiDirection = opponentToAi.normalized;
+            Vector3 aiToOpponentDirection = -opponentToAiDirection;
+            float behindDot = Vector3.Dot(opponentBody.forward, opponentToAiDirection);
+            float facingDot = Vector3.Dot(body.forward, aiToOpponentDirection);
+            return behindDot <= dogfightEntryBehindDot && facingDot >= dogfightEntryFacingDot;
+        }
+
+        private float DistanceToRouteTarget(Transform body)
+        {
+            Transform routeTarget = route != null ? route.GetTarget(competitor) : null;
+            return routeTarget != null ? Vector3.Distance(body.position, routeTarget.position) : 0f;
+        }
+
+        private void UpdateDogfightTimers()
+        {
+            dogfightCooldownRemaining = Mathf.Max(0f, dogfightCooldownRemaining - Time.deltaTime);
+            if (!dogfightChaseActive)
+            {
+                return;
+            }
+
+            dogfightChaseRemaining = Mathf.Max(0f, dogfightChaseRemaining - Time.deltaTime);
+            if (dogfightChaseRemaining <= 0f)
+            {
+                StopDogfightChase(true);
+            }
+        }
+
+        private void BeginDogfightChase()
+        {
+            dogfightChaseActive = true;
+            dogfightChaseRemaining = Mathf.Max(0.1f, dogfightMaxChaseTime);
+            dogfightCooldownRemaining = 0f;
+        }
+
+        private void StopDogfightChase(bool startCooldown)
+        {
+            dogfightChaseActive = false;
+            dogfightChaseRemaining = 0f;
+            if (startCooldown)
+            {
+                dogfightCooldownRemaining = Mathf.Max(dogfightCooldownRemaining, dogfightCooldownDuration);
+            }
         }
 
         private float CalculateTurn(Vector3 localTarget)
