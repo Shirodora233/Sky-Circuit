@@ -1,5 +1,11 @@
 # V0.8 LAN Multiplayer Preparation
 
+> Status: historical planning note. The current LAN flow now runs through
+> `Assets/Scenes/V0_10_MainMenu.unity`, launches the shared
+> `Assets/SkyCircuit/Scenes/CloudSeaRace.unity` scene, includes archetype
+> selection, ready state, three-second countdown, synchronized race state, and
+> exit/disconnect handling. Use the root `README.md` for current instructions.
+
 ## Goal
 
 V0.8 prepares the project for a two-player local network match. One player starts as Host, the other joins as Client by LAN address. The first playable target is not a full online service; it is a stable same-network 1v1 match that can reuse the current flight, route scoring, dogfight, and HUD prototypes.

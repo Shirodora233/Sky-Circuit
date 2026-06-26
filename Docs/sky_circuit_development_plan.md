@@ -1,5 +1,10 @@
 # Sky Circuit 长期开发计划
 
+> Status: historical direction draft. It is still useful for high-level design
+> intent, but the immediate next steps and versioned scene references are
+> outdated. Use the root `README.md` for current entry points, active scenes,
+> build steps, and gameplay rules.
+
 ## 1. 项目定位
 
 Sky Circuit 是一个原创 3D 空中竞技游戏，核心灵感来自文档中整理的 Flying Circus 规则，但不直接使用原作标题、角色、Logo、专有包装或美术素材。
